@@ -45,7 +45,7 @@ def money(text):
     """first £ amount in text -> float, supports k/m suffix."""
     if text is None:
         return None
-    m = re.search(r"£\s?([\d,]+(?:\.\d+)?)\s?(k|m|million|bn)?\b", text, re.I)
+    m = re.search(r"£\s?([\d,]+(?:\.\d+)?)\s?(k|m|million|bn)?(?![\w&])", text, re.I)   # "£100 M&S" is not £100m
     if not m:
         return None
     v = float(m.group(1).replace(",", ""))
@@ -67,14 +67,14 @@ def prize_value_from_text(text):
     """Conservative: value stated in the title/description. Returns float or None."""
     if not text: return None
     t = text.replace("\u2011", "-")
-    m = re.search(r"(?:worth|valued at|value of|value)\s*(?:over|up to|around|approx\.?)?\s*:?\s*£\s?([\d,]+(?:\.\d+)?)\s?(k|m|million)?", t, re.I)
+    m = re.search(r"(?:worth|valued at|value of|value)\s*(?:over|up to|around|approx\.?)?\s*:?\s*£\s?([\d,]+(?:\.\d+)?)\s?(k|m|million)?(?![\w&])", t, re.I)
     cands = []
     if m:
         v = float(m.group(1).replace(",", "")); s = (m.group(2) or "").lower()
         if "," in m.group(1) and s == "k": s = ""   # "£111,222.33k" is already in pounds
         v *= {"k": 1e3, "m": 1e6, "million": 1e6}.get(s, 1)
         return v
-    for m in re.finditer(r"£\s?([\d,]+(?:\.\d+)?)\s?(k|m|million)?(?![\w])", t, re.I):
+    for m in re.finditer(r"£\s?([\d,]+(?:\.\d+)?)\s?(k|m|million)?(?![\w&])", t, re.I):
         pre = t[max(0, m.start() - 14):m.start()]
         if _BAD_CTX.search(pre): continue
         try: v = float(m.group(1).replace(",", ""))
