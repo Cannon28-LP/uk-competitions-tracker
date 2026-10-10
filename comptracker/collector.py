@@ -180,6 +180,7 @@ def merge_and_store(db, fetcher, t0):
         item["promoter"] = first("promoter") or ""
         item["prize_desc"] = first("prize_desc") or m0["title"]
         item["prize_value"] = first("prize_value")
+        item["image"] = first("image") or ""   # prize picture, hot-linked from the source; the site shows a placeholder when absent
         # link preference: operator-direct > any non-aggregator > aggregator
         links = []
         for m in ms:

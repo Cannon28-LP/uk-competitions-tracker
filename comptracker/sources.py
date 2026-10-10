@@ -22,11 +22,47 @@ def clean(s):
 def rec(**kw):
     d = dict(title="", promoter="", link="", prize_desc="", prize_value=None, entry_type="", entry_cost=None,
              entry_cost_text="", closes_at=None, closes_precision="", tickets_sold=None, tickets_total=None,
-             pct_sold=None, entry_note="", skey="", station="", tags=None)
+             pct_sold=None, entry_note="", skey="", station="", tags=None, image="")
     d.update(kw)
     if not d["skey"]:
         d["skey"] = d["link"] or d["title"]
     return d
+
+_IMG_JUNK = re.compile(r"(logo|(?<![a-z])icons?(?![a-z])|gware|gambleaware|new620c|spacer|1x1|placeholder|avatar|sprite|\.svg(?:$|\?)|\.gif(?:$|\?))", re.I)
+
+def img_url(node, base="", want=480):
+    """Best prize-picture URL inside `node` (or `node` itself if it is an <img>): picks the srcset candidate closest
+    to `want` px wide, resolves relative URLs, unwraps image-proxy wrappers, skips logos/icons/gifs. '' if none."""
+    if node is None: return ""
+    imgs = [node] if getattr(node, "name", "") == "img" else node.select("img")
+    for i in imgs:
+        best = ""
+        srcset = i.get("srcset") or i.get("data-srcset") or ""
+        cands = []
+        for u, w in re.findall(r"(\S+)\s+(\d+)w\b", srcset):   # URLs may contain commas (Cloudflare resizing)
+            cands.append((int(w), u.lstrip(",")))
+        if cands:
+            big = [c for c in cands if c[0] >= want]
+            best = (min(big) if big else max(cands))[1]
+        best = best or i.get("data-src") or i.get("data-lazy-src") or i.get("src") or ""
+        best = best.strip()
+        if not best or best.startswith("data:"): continue
+        if base and not best.startswith("http"):
+            best = urllib.parse.urljoin(base, best)
+        q = urllib.parse.parse_qs(urllib.parse.urlsplit(best).query)
+        if "/api/image-proxy" in best and q.get("url"):   # Showroom wraps operator images; link the original
+            best = q["url"][0]
+        if _IMG_JUNK.search(urllib.parse.urlsplit(best).path) or _IMG_JUNK.search(i.get("class") and " ".join(i["class"]) or ""):
+            continue
+        if best.startswith("http://"): best = "https://" + best[7:]
+        return best
+    return ""
+
+def og_image(s, base=""):
+    m = s.select_one('meta[property="og:image"]')
+    u = (m.get("content") or "").strip() if m else ""
+    if u and base and not u.startswith("http"): u = urllib.parse.urljoin(base, u)
+    return ("https://" + u[7:]) if u.startswith("http://") else u
 
 def approx_from_left(text):
     """'2 Days' / '1 Day' / '10:49' / '7h left' -> approx datetime"""
@@ -97,12 +133,15 @@ def loquax_houses(ctx):
             elif l.lower().startswith("value"): value = money(l)
             elif "guaranteed" in l.lower(): guaranteed = True
         desc = clean((div.select_one("p:not(.gambleAware)") or div.find_all("p")[-1]).get_text()) if div.find_all("p") else ""
+        hi = div.select_one(".houseImageCell img")
+        bg = re.search(r"url\(['\"]?([^'\")]+)", (hi.get("style") or "") if hi else "")
+        image = urllib.parse.urljoin(LOQ + "/", bg.group(1)) if bg else img_url(hi, LOQ + "/")
         m = re.match(r"([A-Z][\w' &.\-]+?) (?:are|is) (?:giving|offering|running|launching)", desc)
         note = "Paid ticket draw; Loquax says all have a free (usually postal) entry route unless indicated."
         if guaranteed: note += " Operator guarantees a house winner."
         out.append(rec(title=title, promoter=m.group(1) if m else "", link=LOQ + a["href"], prize_desc=desc[:400],
                        prize_value=value, entry_type="paid", entry_cost=cost, entry_cost_text=(f"£{cost:g}" if cost is not None else ""),
-                       closes_at=closes, closes_precision="date" if closes else "", entry_note=note))
+                       closes_at=closes, closes_precision="date" if closes else "", entry_note=note, image=image))
     return out
 
 # ---------------------------------------------------------------- ThePrizeFinder (official RSS feeds + detail pages)
@@ -200,7 +239,8 @@ def _csr_cards(ctx, path, free_page=False):
         out.append(rec(title=title, promoter=op, link=link, prize_desc=title, prize_value=money(cash) if cash and cash.lower() != "none" else None,
                        entry_type="free" if isfree else ("paid" if cost is not None else ""), entry_cost=cost,
                        entry_cost_text="FREE" if isfree else price, closes_at=closes, closes_precision="approx" if closes else "",
-                       tickets_sold=ts, tickets_total=tt, pct_sold=pctv, entry_note=note, skey=link or title))
+                       tickets_sold=ts, tickets_total=tt, pct_sold=pctv, entry_note=note, skey=link or title,
+                       image=img_url(art, CSR + "/")))
     return out
 
 @source("Competition Showroom", "aggregator", CSR + "/free-entry-competitions",
@@ -240,7 +280,7 @@ def _csr_operator(ctx, slug, promoter):
                        prize_value=float(v.group(1).replace(",", "")) if v else None, entry_type="paid", entry_cost=cost,
                        entry_cost_text=f"£{cost:g}", tickets_total=int(odds.group(1).replace(",", "")) if odds else None,
                        entry_note="Paid draw (operator page is JS-rendered; data via Showroom operator page). Free postal route usually in operator T&Cs.",
-                       skey=CSR + a["href"]))
+                       skey=CSR + a["href"], image=img_url(node, CSR + "/")))
     return out
 
 @source("BOTB (via Showroom)", "operator", "https://www.botb.com", "botb.com is JS-rendered (no public SSR list); using Showroom's BOTB operator page (top picks only, no closing dates).")
@@ -296,7 +336,8 @@ def dcg(ctx):
         out.append(rec(title=title, promoter="Dream Car Giveaways", link=DCG + h, prize_desc=title,
                        prize_value=prize_value_from_text(title), entry_type="free" if isfree else "paid", entry_cost=cost,
                        entry_cost_text="FREE" if isfree else price, closes_at=closes, closes_precision=prec, pct_sold=pct,
-                       entry_note="Paid ticket draw" + ("; free postal entry route on site (see 'Postal Entry Route')." if not isfree else " (free app entry; see page).")))
+                       entry_note="Paid ticket draw" + ("; free postal entry route on site (see 'Postal Entry Route')." if not isfree else " (free app entry; see page)."),
+                       image=img_url(a, DCG + "/")))
     return out
 
 # ---------------------------------------------------------------- Omaze
@@ -312,13 +353,14 @@ def omaze(ctx):
         t = clean(a.get_text())
         if t in ("The Yorkshire House", "£100k + BMW M3 Touring", "Monthly Millionaire") or (t and a["href"] in ("/pages/yorkshire-iv", "/pages/yorkshire-iv-win-a-bmw-m3", "/pages/monthly-millionaire")):
             if a["href"] not in [p[0] for p in pages]: pages.append((a["href"], t))
-    texts = {}
+    texts = {}; imgs = {}
     for h, t in pages:
         rr = ctx.get(OM + h)
         if not rr: continue
         ss = soup(rr)
         for x in ss(["script", "style", "noscript"]): x.decompose()
         texts[h] = clean(ss.get_text(" "))
+        imgs[h] = og_image(ss, OM + "/")
     out = []
     mm = texts.get("/pages/monthly-millionaire", "")
     house_close = None; mm_close = None
@@ -332,14 +374,14 @@ def omaze(ctx):
             title = "Win the Yorkshire House (£4M) + £250,000 cash – Omaze"
             out.append(rec(title=title, promoter="Omaze", link=OM + h, prize_desc="£4,000,000 house in Yorkshire plus £250,000 cash; supports Blood Cancer UK. One guaranteed winner.",
                            prize_value=4000000.0, entry_type="paid", closes_at=house_close, closes_precision="date" if house_close else "",
-                           entry_note="Paid entries (price tiers on page); No Purchase Necessary postal route per Omaze T&Cs."))
+                           entry_note="Paid entries (price tiers on page); No Purchase Necessary postal route per Omaze T&Cs.", image=imgs.get(h, "")))
         elif "bmw" in h:
             m = re.search(r"by (\d{1,2}(?:st|nd|rd|th)? \w+,? 20\d\d)", txt)
             c = parse_date(m.group(1)) if m else None
             out.append(rec(title="Early Bird: £100k cash + BMW M3 Touring – Omaze", promoter="Omaze", link=OM + h,
                            prize_desc="Early-bird prize: £100,000 cash + BMW M3 Touring for entering the Yorkshire House Draw early.",
                            prize_value=100000.0, entry_type="paid", closes_at=c, closes_precision="date" if c else "",
-                           entry_note="Bonus prize for early entries to the Yorkshire House Draw (paid; postal No Purchase Necessary route in T&Cs)."))
+                           entry_note="Bonus prize for early entries to the Yorkshire House Draw (paid; postal No Purchase Necessary route in T&Cs).", image=imgs.get(h, "")))
         elif "monthly-millionaire" in h:
             m = re.search(r"£(\d+) (\d+) Entries", txt)
             cost = float(m.group(1)) if m else None
@@ -347,7 +389,7 @@ def omaze(ctx):
                            prize_desc="£1,000,000 cash (paid in instalments); 1 guaranteed winner monthly.", prize_value=1000000.0,
                            entry_type="paid", entry_cost=cost, entry_cost_text=(f"from £{cost:g}" if cost else ""),
                            closes_at=mm_close, closes_precision="date" if mm_close else "",
-                           entry_note="Paid entries (£10/£20/£30 packs); Postal entry – No Purchase Necessary."))
+                           entry_note="Paid entries (£10/£20/£30 packs); Postal entry – No Purchase Necessary.", image=imgs.get(h, "")))
     return out
 
 # ---------------------------------------------------------------- MSE forum
@@ -429,7 +471,8 @@ def competitions_time(ctx):
             cat = c.select_one(".cc2-cat-name")
             out.append(rec(title=title, promoter=site, link=f"{CT}{p if p != '/' else ''}#{c.get('id','')}", prize_desc=title,
                            prize_value=prize_value_from_text(title), entry_type="free", closes_at=closes,
-                           closes_precision="date" if closes else "", entry_note=note + ".", skey=f"{title}|{site}"))
+                           closes_precision="date" if closes else "", entry_note=note + ".", skey=f"{title}|{site}",
+                           image=img_url(c, CT + "/")))
     return out
 
 # ---------------------------------------------------------------- Competitions Today
@@ -493,7 +536,14 @@ def findcompetitions(ctx):
                     left = x; op = parts[i - 1] if i else ""; title = parts[i + 1] if i + 1 < len(parts) else ""
                     break
             if not title: continue
-            items[h] = dict(op=op, left=left, title=title)
+            # the card picture sits a level or two above the text box; stop before reaching a neighbouring card
+            ib = box; image = img_url(ib, FC + "/")
+            for _ in range(3):
+                if image or ib.parent is None: break
+                ib = ib.parent
+                if len({x["href"].split("?")[0] for x in ib.select('a[href*="/competitions/c/"]')}) > 1: break
+                image = img_url(ib, FC + "/")
+            items[h] = dict(op=op, left=left, title=title, image=image)
     # details
     cap = ctx.cap("fc", 70)
     order = sorted(items, key=lambda l: (ctx.cache_age(l)))  # uncached first (age=inf->first via -1), then oldest
@@ -512,6 +562,8 @@ def findcompetitions(ctx):
             if isinstance(j, dict) and j.get("@type") == "Product":
                 off = j.get("offers") or {}
                 d["price"] = off.get("price"); d["url"] = off.get("url"); d["brand"] = (j.get("brand") or {}).get("name")
+                im = j.get("image"); im = im[0] if isinstance(im, list) and im else im
+                if isinstance(im, str) and im.startswith("http"): d["image"] = im
             if isinstance(j, dict) and j.get("@type") == "FAQPage":
                 for q in j.get("mainEntity", []):
                     if q.get("name", "").startswith("When does the draw close"):
@@ -552,7 +604,7 @@ def findcompetitions(ctx):
                        prize_value=prize_value_from_text(it["title"]), entry_type=("free" if isfree else "paid") if cost is not None else "",
                        entry_cost=cost, entry_cost_text=("FREE" if isfree else (f"£{cost:g}" if cost is not None else "")),
                        closes_at=closes, closes_precision=prec, tickets_sold=d.get("sold"), tickets_total=d.get("total"),
-                       pct_sold=d.get("pct"), entry_note=note, skey=l, ))
+                       pct_sold=d.get("pct"), entry_note=note, skey=l, image=it.get("image") or d.get("image") or ""))
         out[-1]["agg_link"] = l
         out[-1]["extra"] = {"fc_trust": d.get("trust", ""), "vcode": bool(d.get("vcode")), "free_route": d.get("free_route")}
     ctx.meta["fc_list_items"] = len(items)
@@ -587,7 +639,8 @@ def nitrous(ctx):
                        entry_type="paid", entry_cost=cost, entry_cost_text=f"£{cost:g}" if cost is not None else "",
                        closes_at=closes, closes_precision="exact" if closes else "",
                        tickets_sold=int(sm.group(1).replace(",", "")) if sm else None, pct_sold=float(sm.group(2)) if sm else None,
-                       entry_note="Paid entries (skill question); free postal entry route on every Nitrous competition."))
+                       entry_note="Paid entries (skill question); free postal entry route on every Nitrous competition.",
+                       image=img_url(a, NIT + "/")))
     return out
 
 # ---------------------------------------------------------------- Compete For Cars
@@ -614,7 +667,8 @@ def competeforcars(ctx):
             except Exception: pass
         out.append(rec(title=title, promoter="Compete For Cars", link=a["href"], prize_desc=txt[:200], entry_type="paid", entry_cost=cost,
                        entry_cost_text=f"£{cost:g}" if cost is not None else "", closes_at=closes, closes_precision="exact" if closes else "",
-                       entry_note="Paid entries (qualifying question); free postal entry route per their FAQ."))
+                       entry_note="Paid entries (qualifying question); free postal entry route per their FAQ.",
+                       image=img_url(li.select_one("img.attachment-woocommerce_thumbnail") or li, CFC + "/")))
     return out
 
 # ================================================================ RADIO
@@ -641,7 +695,8 @@ def radio_global(ctx):
             title = clean(a.get_text())
             if not m or not title: continue
             cid = m.group(1)
-            c = comps.setdefault(cid, dict(title=title, stations=[], slug=m.group(2) or "", host=re.search(r"//(winplus\.[^/]+)", a["href"]).group(1)))
+            c = comps.setdefault(cid, dict(title=title, stations=[], slug=m.group(2) or "", host=re.search(r"//(winplus\.[^/]+)", a["href"]).group(1), image=""))
+            c["image"] = c["image"] or img_url(a, url)
             if name not in c["stations"]: c["stations"].append(name)
         base = re.match(r"https?://[^/]+", url).group(0)
         for a in s.select('a[href^="/win/"]'):
@@ -651,7 +706,8 @@ def radio_global(ctx):
             k = base + h
             for k2, v2 in arts.items():
                 if v2["title"].lower() == t.lower(): k = k2; break
-            c = arts.setdefault(k, dict(title=t, stations=[]))
+            c = arts.setdefault(k, dict(title=t, stations=[], image=""))
+            c["image"] = c["image"] or img_url(a, url)
             if name not in c["stations"]: c["stations"].append(name)
     out = []
     for cid, c in comps.items():
@@ -661,12 +717,12 @@ def radio_global(ctx):
         out.append(_radio_rec(title=title, promoter="Global (" + ", ".join(c["stations"]) + ")", station=", ".join(c["stations"]), link=link,
                               prize_desc=title, prize_value=prize_value_from_text(title),
                               entry_note="Global WIN+: sign in with a free Global iD / UK mobile number. Some Win+ competitions sell optional entry bundles – read the competition page and terms before paying.",
-                              skey=f"global:{cid}"))
+                              skey=f"global:{cid}", image=c["image"]))
     for k, c in arts.items():
         out.append(_radio_rec(title=c["title"], promoter="Global (" + ", ".join(c["stations"]) + ")", station=", ".join(c["stations"]), link=k,
                               prize_desc=c["title"], prize_value=prize_value_from_text(c["title"]),
                               entry_type="paid" if re.search(r"birthday draw", c["title"], re.I) else "",
-                              entry_note=("The Birthday Draw is a paid weekly prize draw (Global & ITV); check its rules for the free entry route. " if re.search(r"birthday draw", c["title"], re.I) else "") + "Station competition article – see page for how to enter and closing date.", skey="global:" + k))
+                              entry_note=("The Birthday Draw is a paid weekly prize draw (Global & ITV); check its rules for the free entry route. " if re.search(r"birthday draw", c["title"], re.I) else "") + "Station competition article – see page for how to enter and closing date.", skey="global:" + k, image=c["image"]))
     ctx.meta["stations_ok"] = len({s for c in list(comps.values()) + list(arts.values()) for s in c["stations"]})
     return out
 
@@ -716,11 +772,13 @@ def radio_bauer(ctx):
 def radio_talksport(ctx):
     r = ctx.get("https://talksport.com/competitions/")
     if not r: return []
-    items = {}
+    items = {}; imgs = {}
     for a in soup(r).select('a[href^="/competitions/"]'):
         t = clean(a.get_text()); h = a["href"]
         if not re.match(r"^/competitions/\d+/", h) or len(t) < 8: continue
         items.setdefault("https://talksport.com" + h, t)
+        if not imgs.get("https://talksport.com" + h):
+            imgs["https://talksport.com" + h] = img_url(a, "https://talksport.com/") or img_url(a.parent, "https://talksport.com/")
     n = 0; cap = ctx.cap("talksport", 20)
     for l in items:
         if ctx.cache_get(l) or n >= cap: continue
@@ -743,5 +801,5 @@ def radio_talksport(ctx):
         closes = datetime.fromisoformat(d["closes"]) if d.get("closes") else None
         out.append(_radio_rec(title=t, promoter="talkSPORT", station="talkSPORT", link=l, prize_desc=t, prize_value=prize_value_from_text(t),
                               closes_at=closes, closes_precision="exact" if closes else "",
-                              entry_note="talkSPORT competition (UK 18+); entry method on the page.", skey=l))
+                              entry_note="talkSPORT competition (UK 18+); entry method on the page.", skey=l, image=imgs.get(l, "")))
     return out

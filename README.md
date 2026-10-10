@@ -5,10 +5,13 @@ A public, static listing of live UK prize competitions and draws (cash, cars, ho
 **Live site:** https://cannon28-lp.github.io/uk-competitions-tracker/
 
 ## Features
-- Sort (new, prize pool, nearly finished, entry cost, best odds), filter (cash / assets / holidays / tech / radio / free / paid / new in 24h), prize categories, text search and per-source filter – all client-side.
-- Live countdowns to closing time (UK time), tickets-sold / turnout bars, entry-cost budget helper.
-- Per-listing **safety badge** (Verified / Unverified / Caution) with the reasons shown.
-- Expired competitions are removed automatically; items first seen in the last 24h get a **NEW** flag.
+- Prize pictures on every card (taken from the source listing; a category placeholder is shown when a source has none or blocks the image).
+- Search, Free / Paid switch, prize categories with live counts, quick toggles (new today, ends within 24h, radio, has picture), safety and source filters – all client-side.
+- Sort by newest, ending soonest, biggest prize, cheapest entry or fewest entries so far. The current filters are kept in the address bar, so a view can be bookmarked or shared.
+- Live countdowns to closing time (UK time), tickets-sold bars, and a "Details" panel per card with how to enter, the £30/month budget helper and why it got its safety badge.
+- Per-listing **safety badge** (Verified / Unverified / Caution); serious warnings are shown on the card itself.
+- Expired competitions disappear automatically; items first seen in the last 24h get a **NEW** flag; repeat copies of the same competition are shown once.
+- Light and dark themes, phone-friendly layout, and cards load 48 at a time as you scroll so the page stays fast.
 
 ## How it works
 1. `.github/workflows/update.yml` runs hourly (cron `17 * * * *`) and on demand (`workflow_dispatch`).
