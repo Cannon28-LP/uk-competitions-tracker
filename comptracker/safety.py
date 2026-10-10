@@ -24,6 +24,15 @@ SCAM_WORDS = re.compile(r"(congratulations|you(?:'|’)?ve been selected|you hav
 CARD_FREE = re.compile(r"(card details|credit card|debit card|free trial|subscription|£\d+(?:\.\d+)? (?:p&p|postage|delivery|shipping))", re.I)
 SPEND_TO_QUALIFY = re.compile(r"(must have spent|spend £\s?\d|spend \d|spent £\s?\d|deposit|wager|new customers only)", re.I)
 
+DIRECTORIES = ("Competitions Time", "Competitions Today", "ThePrizeFinder", "Loquax", "Loquax Win-a-House", "MSE Competitions Time",
+               "FindCompetitions", "Competition Showroom", "Latest Deals")
+_DOMAINISH = re.compile(r"^(?:https?://)?(?:www\.)?([a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.[a-z]{2,})(?:/.*)?$", re.I)
+
+def promoter_domain(promoter):
+    """Some aggregators give the promoter as its website ('panmacmillan.com'); return that domain, else ''."""
+    m = _DOMAINISH.match((promoter or "").strip())
+    return m.group(1).lower() if m else ""
+
 def domain(url):
     try:
         h = urllib.parse.urlsplit(url).netloc.lower()
@@ -78,6 +87,9 @@ def assess(item, site=None):
     if "Competition Showroom" in srcs or "FindCompetitions" in srcs:
         score += 1; pos.append("Operator tracked by a comparison site (published ticket counts).")
     if prom: score += 1
+    ndir = len([x for x in srcs if x in DIRECTORIES])
+    if ndir >= 2 and not paid:
+        score += 1; pos.append(f"Cross-listed by {ndir} independent comping directories.")
     if site and site.get("terms"):
         score += 1; pos.append("Terms & Conditions page found on operator site.")
     if site and site.get("company"):
@@ -101,6 +113,9 @@ def assess(item, site=None):
         flag("medium", "No Terms & Conditions link found on the operator's website.")
     if any(d.endswith(t) for t in SCAM_TLDS) or d in SHORTENERS:
         flag("high", f"Suspicious web address ({d}).")
+    pd = promoter_domain(prom)
+    if pd and (any(pd.endswith(t) for t in SCAM_TLDS) or pd in SHORTENERS):
+        flag("high", f"Promoter's web address looks suspicious ({pd}).")
     text = f"{title} {item.get('prize_desc','')} {item.get('entry_note','')}"
     if SCAM_WORDS.search(title + " " + item.get("prize_desc", "")):
         flag("high", "Scam-style/urgent wording (e.g. 'claim now', fees to claim, 'you've been selected').")
@@ -125,4 +140,36 @@ def assess(item, site=None):
         badge = "Verified"
     else:
         badge = "Unverified"
-    return {"badge": badge, "score": score, "positives": pos, "flags": flags}
+    reason, basis = _reason(badge, item, site, pos, flags, srcs, prom, paid, ndir, big_site)
+    return {"badge": badge, "score": score, "positives": pos, "flags": flags, "reason": reason, "basis": basis}
+
+def _reason(badge, item, site, pos, flags, srcs, prom, paid, ndir, big_site):
+    """One short, honest line saying WHY the badge is what it is. 'Verified' is never absolute; 'Unverified' says what is missing."""
+    checked = bool(site and site.get("checked"))
+    has_terms = bool(site and site.get("terms"))
+    serious = [f for f in flags if f["sev"] in ("high", "medium")]
+    if badge == "Caution":
+        return serious[0]["text"], "flagged"
+    if badge == "Verified":
+        if any("Established" in p for p in pos): return "Established operator on our heuristic list – still read its T&Cs", "established"
+        if any("big brand" in p for p in pos): return "Recognised brand/publisher – still read its T&Cs", "brand"
+        if any("radio broadcaster" in p for p in pos): return "Run by an established UK radio broadcaster", "radio"
+        if any("MoneySavingExpert" in p for p in pos): return "Listed in MoneySavingExpert's moderated forum, promoter named", "mse"
+        if has_terms: return "Promoter named, T&Cs found on its site, listed by a curated directory", "terms"
+        return "Several independent signals (curated listing, named promoter) – not a guarantee", "signals"
+    # Unverified
+    dirs = [x for x in srcs if x in DIRECTORIES]
+    if not prom:
+        if checked and not has_terms: return "Unknown promoter – no T&Cs found", "unknown-no-terms"
+        if dirs: return "Unknown promoter – listed by " + (dirs[0] if len(dirs) == 1 else f"{len(dirs)} directories") + " but not identified", "unknown-promoter"
+        return "Unknown promoter – no T&Cs found", "unknown-no-terms"
+    if checked and not has_terms and not big_site:
+        return "Promoter named, but no T&Cs link found on its website", "named-no-terms"
+    if checked and has_terms:
+        return "Promoter named, T&Cs found – not enough other signals to verify", "named-terms"
+    if dirs and not paid:
+        return "Aggregator-listed, promoter unverified" + (f" (on {ndir} directories)" if ndir > 1 else ""), "aggregator"
+    if paid:
+        return "Paid draw by a promoter we couldn't verify – check T&Cs and free-entry route", "paid-unverified"
+    if dirs: return "Aggregator-listed, promoter unverified", "aggregator"
+    return "Promoter named, not independently verified", "named"
