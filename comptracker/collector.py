@@ -9,9 +9,9 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.environ.get("COMP_DB") or os.path.join(BASE, "data", "comps.db")
 log = logging.getLogger("comp")
 
-SRC_PRIORITY = ["Radio: Global (Heart, Capital, Smooth, Classic FM, Radio X…)", "Radio: Bauer / Hello Rayo (Kiss, Absolute, Hits, Magic, Jazz FM, Clyde…)", "Radio: talkSPORT", "Dream Car Giveaways", "Omaze", "Nitrous Competitions", "Compete For Cars", "FindCompetitions", "Competition Showroom",
+SRC_PRIORITY = ["Radio: Global (Heart, Capital, Smooth, Classic FM, Radio X…)", "Radio: Bauer / Hello Rayo (Kiss, Absolute, Hits, Magic, Jazz FM, Clyde…)", "Radio: talkSPORT", "ITV Win", "Dream Car Giveaways", "Omaze", "Nitrous Competitions", "Compete For Cars", "FindCompetitions", "Competition Showroom",
                 "BOTB (via Showroom)", "7days Performance (via Showroom)", "Loquax Win-a-House", "ThePrizeFinder", "MSE Competitions Time",
-                "Competitions Time", "Competitions Today", "Loquax"]
+                "Competitions Time", "Competitions Today", "olive magazine", "Latest Deals", "Loquax"]
 PREC_RANK = {"exact": 0, "date": 1, "approx": 2, "": 3}
 
 def connect():

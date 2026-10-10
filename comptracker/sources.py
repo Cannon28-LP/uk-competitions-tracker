@@ -671,6 +671,131 @@ def competeforcars(ctx):
                        image=img_url(li.select_one("img.attachment-woocommerce_thumbnail") or li, CFC + "/")))
     return out
 
+# ---------------------------------------------------------------- Latest Deals (community-posted free comps)
+LD = "https://www.latestdeals.co.uk"
+_LD_OBJ = re.compile(r'\{_id:"([0-9a-f]{24})",(.*?)\}', re.S)
+_LD_KV = re.compile(r'(\w+):("(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?|!0|!1|null)')
+
+def _ld_items(html):
+    """The listing page embeds its data as a JS object stream ({_id:"..",title:"..",...}); read the flat competition records."""
+    out = []
+    for m in _LD_OBJ.finditer(html):
+        d = {"_id": m.group(1)}
+        for k, v in _LD_KV.findall(m.group(2)):
+            if v.startswith('"'):
+                try: v = json.loads(v)
+                except ValueError: v = v.strip('"')
+            elif v in ("!0", "!1"): v = v == "!0"
+            elif v == "null": v = None
+            else: v = float(v) if "." in v else int(v)
+            d.setdefault(k, v)
+        if d.get("type") == "competition" and d.get("title") and d.get("slug"):
+            out.append(d)
+    return out
+
+@source("Latest Deals", "aggregator", LD + "/competitions",
+        "Community-posted UK competitions (mostly free). Data embedded in the public listing pages (first pages only); links go to Latest Deals' page for each comp.")
+def latestdeals(ctx):
+    seen = {}
+    for page in range(1, ctx.cap("ld_pages", 8) + 1):
+        r = ctx.get(LD + "/competitions" + (f"?page={page}" if page > 1 else ""))
+        if not r: break
+        got = _ld_items(r.text)
+        new = [d for d in got if d["_id"] not in seen]
+        for d in new: seen[d["_id"]] = d
+        if not new: break
+    out = []; n = now()
+    for d in seen.values():
+        closes = None
+        try:
+            if d.get("endDate"): closes = datetime.fromisoformat(d["endDate"].replace("Z", "+00:00")).astimezone(LONDON)
+        except ValueError: pass
+        if closes and closes < n: continue
+        entry = d.get("entry") or ""
+        host = d.get("competitionHost") or ""
+        promoter = d.get("merchantName") or host
+        if host.startswith("@"): promoter = f"{host} on {d.get('merchantName') or entry or 'social media'}"
+        elif promoter.lower() in ("x", "twitter", "instagram", "facebook", "tiktok", "youtube", "threads", "gleam"):
+            promoter = f"Giveaway on {promoter}"
+        paid = bool(re.search(r"\b(text|sms|phone|call|purchase|buy)\b", entry, re.I))
+        note = f"Entry: {entry}" + (f" (@{host.lstrip('@')})" if host.startswith("@") else "") + "." if entry else "See the page for how to enter."
+        if d.get("frequency") and d["frequency"] != "Once": note += f" Enter {d['frequency'].lower()}."
+        note += " Posted by the Latest Deals community; open their page for the promoter's entry link."
+        img = f"https://images.latestdeals.co.uk/post-small/p-{d['_id']}-{d['image']}.jpg" if isinstance(d.get("image"), int) and d["image"] > 0 else ""
+        out.append(rec(title=d["title"], promoter=promoter, link=f"{LD}/competitions/{d['slug']}", prize_desc=d["title"],
+                       prize_value=prize_value_from_text(d["title"]), entry_type="" if paid else "free",
+                       closes_at=closes, closes_precision="exact" if closes else "", entry_note=note, skey="ld:" + d["_id"], image=img))
+    ctx.meta["ld_items"] = len(seen)
+    return out
+
+# ---------------------------------------------------------------- ITV Win (This Morning, GMB, Lorraine ...)
+ITV = "https://www.itv.com/win"
+
+@source("ITV Win", "operator", ITV + "/", "ITV's competitions hub (This Morning, GMB, Loose Women...). One request per run to the JSON the page itself loads.", direct=True)
+def itv_win(ctx):
+    r = ctx.get(ITV + "/api/v9/init")
+    if not r: return []
+    try: data = r.json()
+    except ValueError:
+        ctx.errors.append("ITV: response was not JSON"); return []
+    out = []
+    for c in data.get("competitions") or []:
+        if c.get("status") not in ("active", "on-hold") or not c.get("isCompetition", True): continue
+        meta = c.get("meta") or {}
+        if (meta.get("comingSoon") or {}).get("dateStart"): continue
+        card = ((meta.get("display") or {}).get("card") or {}).get("title") or ""
+        title = clean(BeautifulSoup(card, "lxml").get_text(" ")) if card else ""
+        title = title.rstrip("!") or ("Win " + clean(c.get("name") or ""))
+        closes = None
+        try:
+            if c.get("dateStop"): closes = datetime.fromisoformat(c["dateStop"].replace("Z", "+00:00")).astimezone(LONDON)
+        except ValueError: pass
+        pay = meta.get("payment") or {}
+        chans = [k for k, v in (meta.get("channels") or {}).items() if isinstance(v, dict) and v.get("enabled")]
+        if c.get("isFree"):
+            etype, cost, ctext, note = "free", 0.0, "FREE", "Free to enter online (ITV account)."
+        elif c.get("isTokenPaid"):
+            etype, cost, ctext, note = "paid", None, "ITV Win tokens", "Entered with ITV Win tokens (bought on the site)."
+        else:
+            cost = (pay.get("cost") or 0) / 100 or None
+            etype, ctext = "paid", (f"£{cost:g}" if cost else "")
+            note = "Paid entry" + (f" from £{cost:g}" if cost else "") + " via " + ", ".join(x for x in chans if x != "postal") + "."
+        if c.get("hasQuiz"): note += " Entry includes a quiz question."
+        if "postal" in chans: note += " Free postal entry route available (see ITV's terms)."
+        media = (meta.get("media") or {}).get("desktop") or {}
+        pic = media.get("cardImage") or media.get("detailsImage") or ""
+        name = clean(c.get("name") or title)
+        out.append(rec(title=title, promoter="ITV", link=f"{ITV}/competitions/{c['id']}", prize_desc=name,
+                       prize_value=prize_value_from_text(name), entry_type=etype, entry_cost=cost, entry_cost_text=ctext,
+                       closes_at=closes, closes_precision="exact" if closes else "", entry_note=note, skey=f"itv:{c['id']}",
+                       image=f"{ITV}/files/640xAUTO/{pic}" if pic else "", tags=["tv"]))
+    return out
+
+# ---------------------------------------------------------------- olive magazine (Immediate Media)
+OLV = "https://www.olivemagazine.com"
+
+@source("olive magazine", "publisher", OLV + "/competitions/", "Immediate Media food & travel magazine's own competitions page (free to enter; closing dates are on each page).")
+def olive(ctx):
+    r = ctx.get(OLV + "/competitions/")
+    if not r: return []
+    out = []; seen = set()
+    for art in soup(r).select("article.card"):
+        a = art.select_one('a[href*="/competitions/"]')
+        title = clean(art.get("data-item-name") or (a.get_text() if a else ""))
+        if not a or not title or a["href"] in seen: continue
+        seen.add(a["href"])
+        link = a["href"] if a["href"].startswith("http") else OLV + a["href"]
+        image = img_url(art, OLV + "/")
+        if not image:
+            src = art.select_one("picture source[srcset]")
+            if src:
+                cands = re.findall(r"(\S+)\s+(\d+)w\b", src["srcset"])
+                if cands: image = max(cands, key=lambda c: int(c[1]))[0]
+        out.append(rec(title=title, promoter="olive magazine", link=link, prize_desc=title, prize_value=prize_value_from_text(title),
+                       entry_type="free", entry_note="Free magazine competition; closing date and terms are on the competition page.",
+                       skey=link, image=image))
+    return out
+
 # ================================================================ RADIO
 MONTH_RX = "january|february|march|april|may|june|july|august|september|october|november|december"
 

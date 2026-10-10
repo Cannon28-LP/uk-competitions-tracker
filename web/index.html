@@ -75,6 +75,13 @@ select:focus{outline:none;border-color:var(--acc)}
 .chip .n{font-size:12px;color:var(--tx3);margin-left:5px;font-variant-numeric:tabular-nums}
 .row3{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .row3 select{padding-top:6px;padding-bottom:6px;font-size:13.5px}
+.grp{display:contents}
+.price{display:inline-flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px 6px 2px 11px;font-size:13.5px;color:var(--tx2);white-space:nowrap}
+.price.on{border-color:var(--acc);background:var(--acc-soft);color:var(--tx);font-weight:600}
+.price input{width:64px;border:0;background:transparent;padding:4px 3px;font-size:13.5px;outline:none;-moz-appearance:textfield;appearance:textfield;font-weight:500}
+.price input::-webkit-inner-spin-button,.price input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.price input:focus{background:var(--surface2);border-radius:6px}
+.hint{color:var(--tx3)}
 .resultline{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 0 2px;color:var(--tx3);font-size:13.5px}
 .resultline b{color:var(--tx)}
 .linkbtn{border:0;background:none;color:var(--acc);cursor:pointer;padding:0;font-size:13.5px;font-weight:600}
@@ -149,9 +156,14 @@ th{color:var(--tx3);font-weight:600}
   .notice{font-size:12.5px}
   .seg{flex:1 1 150px}.seg button{flex:1;padding:6px 8px}
   .bar select{flex:1 1 150px;min-width:0}
-  .row3{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-  .row3::-webkit-scrollbar{display:none}
-  .row3 > *{flex:none}
+  .row3{flex-direction:column;align-items:stretch;flex-wrap:nowrap}
+  .grp{display:flex;gap:8px;min-width:0}
+  .grp-t{overflow-x:auto;scrollbar-width:none}
+  .grp-t::-webkit-scrollbar{display:none}
+  .grp-t > *{flex:none}
+  .grp-f{flex-wrap:wrap}
+  .grp-f select{flex:1 1 140px;min-width:0}
+  .price input{width:50px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -204,16 +216,22 @@ th{color:var(--tx3);font-weight:600}
   </div>
   <div class="row2"><div class="chips" id="cats" role="group" aria-label="Prize category"></div></div>
   <div class="row3" id="row3">
+    <div class="grp grp-t">
     <button type="button" class="toggle" data-t="fresh" aria-pressed="false">🆕 New today</button>
     <button type="button" class="toggle" data-t="ending" aria-pressed="false">⏳ Ends within 24h</button>
     <button type="button" class="toggle" data-t="radio" aria-pressed="false">📻 Radio</button>
     <button type="button" class="toggle" data-t="pics" aria-pressed="false">🖼️ Has picture</button>
+    </div>
+    <div class="grp grp-f">
+    <label class="price" id="prizeBox" title="Prize value range. Competitions with no stated prize value are hidden while this is set.">Prize £<input id="pmin" type="number" inputmode="numeric" min="0" step="1" placeholder="min" aria-label="Minimum prize value in pounds">–<input id="pmax" type="number" inputmode="numeric" min="0" step="1" placeholder="max" aria-label="Maximum prize value in pounds"></label>
+    <label class="price" id="entryBox" title="Highest entry price you'll pay. Free entries are always included; paid entries without a listed price are hidden. Use 0 for free only.">Entry up to £<input id="emax" type="number" inputmode="decimal" min="0" step="0.01" placeholder="any" aria-label="Maximum entry price in pounds"></label>
     <select id="safety" aria-label="Safety rating">
       <option value="">Any safety rating</option>
       <option value="nocaution">Hide “Caution”</option>
       <option value="verified">Verified only</option>
     </select>
     <select id="src" aria-label="Source"><option value="">All sources</option></select>
+    </div>
   </div>
 </div>
 
@@ -241,7 +259,8 @@ const CAT_META = {
   "Fashion/Beauty":["💄",320],"Food/Drink":["🍽️",35],"Family/Kids":["🧸",45],"Other":["⭐",230]
 };
 const $ = id => document.getElementById(id);
-const st = {q:"", entry:"", sort:"new", cat:"", t:new Set(), safety:"", src:""};
+const st = {q:"", entry:"", sort:"new", cat:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null};
+const priceSet = () => st.pmin != null || st.pmax != null;
 let DATA = null, ITEMS = [], BYID = new Map(), LIST = [], shown = 0, cdEls = [];
 
 /* ---------- formatting ---------- */
@@ -321,6 +340,13 @@ function match(it, skipCat){
   if (st.t.has("radio") && !it._radio) return false;
   if (st.t.has("pics") && !it._img) return false;
   if (st.t.has("ending") && !(it._cl && it._cl - Date.now() < 864e5)) return false;
+  if (priceSet()){
+    const v = it.prize_value;
+    if (v == null || (st.pmin != null && v < st.pmin) || (st.pmax != null && v > st.pmax)) return false;
+  }
+  if (st.emax != null && it.entry_type !== "free"){
+    if (!(it.entry_type === "paid" && it.entry_cost > 0 && it.entry_cost <= st.emax + 1e-9)) return false;
+  }
   if (st.q){ for (const w of st.q.toLowerCase().split(/\s+/)) if (w && !it._hay.includes(w)) return false; }
   return true;
 }
@@ -361,7 +387,7 @@ function card(it){
   <div class="media">
     <div class="ph" style="--h:${hue}"><span>${emoji}</span></div>
     ${it._img ? `<img src="${esc(it._img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}
-    <div class="ov"><div class="ov-l">${it._new ? `<span class="tag t-new">NEW</span>` : ""}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
+    <div class="ov"><div class="ov-l">${it._new ? `<span class="tag t-new">NEW</span>` : ""}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
   </div>
   <div class="body">
     <div class="kicker"><span class="b b-${esc(sf.badge)}" title="Automated safety guide – not a guarantee">${icon} ${esc(sf.badge)}</span><span class="prom" title="${esc(promoter)}">${esc(promoter)}</span></div>
@@ -415,7 +441,7 @@ function render(keepScroll){
   $("grid").textContent = "";
   appendPage();
   $("empty").hidden = LIST.length > 0;
-  $("reset").hidden = !(st.q || st.entry || st.cat || st.t.size || st.safety || st.src);
+  $("reset").hidden = !(st.q || st.entry || st.cat || st.t.size || st.safety || st.src || priceSet() || st.emax != null);
   syncUrl();
   if (!keepScroll){   // results changed: bring the top of the list back into view
     const y = $("toolbar").offsetTop;
@@ -436,7 +462,7 @@ function updateCount(){
   const total = ITEMS.length;
   $("count").innerHTML = LIST.length === total
     ? `<b>${num(total)}</b> live competitions`
-    : `<b>${num(LIST.length)}</b> of ${num(total)} live competitions match`;
+    : `<b>${num(LIST.length)}</b> of ${num(total)} live competitions match` + (priceSet() ? `<span class="hint"> · ones with no stated prize value are hidden</span>` : "");
 }
 
 /* ---------- countdowns: one timer, only touches cards on the page, only writes when text changes ---------- */
@@ -471,6 +497,9 @@ function syncUrl(){
   if (st.t.size) p.set("t", [...st.t].join(","));
   if (st.safety) p.set("safety", st.safety);
   if (st.src) p.set("src", st.src);
+  if (st.pmin != null) p.set("pmin", st.pmin);
+  if (st.pmax != null) p.set("pmax", st.pmax);
+  if (st.emax != null) p.set("emax", st.emax);
   const qs = p.toString();
   history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
 }
@@ -483,8 +512,16 @@ function readUrl(){
   st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics"].includes(x)));
   st.safety = ["verified", "nocaution"].includes(p.get("safety")) ? p.get("safety") : "";
   st.src = p.get("src") || "";
+  st.pmin = toNum(p.get("pmin")); st.pmax = toNum(p.get("pmax")); st.emax = toNum(p.get("emax"));
+}
+function toNum(v){
+  if (v == null || String(v).trim() === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 function syncControls(){
+  $("pmin").value = st.pmin ?? ""; $("pmax").value = st.pmax ?? ""; $("emax").value = st.emax ?? "";
+  $("prizeBox").classList.toggle("on", priceSet()); $("entryBox").classList.toggle("on", st.emax != null);
   $("q").value = st.q; $("searchWrap").classList.toggle("has", !!st.q);
   $("sort").value = st.sort; $("safety").value = st.safety; $("src").value = st.src;
   document.querySelectorAll("#entrySeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.entry === st.entry));
@@ -502,6 +539,16 @@ $("qclear").addEventListener("click", () => { $("q").value = ""; st.q = ""; $("s
 $("sort").addEventListener("change", e => { st.sort = e.target.value; render(); });
 $("safety").addEventListener("change", e => { st.safety = e.target.value; render(); });
 $("src").addEventListener("change", e => { st.src = e.target.value; render(); });
+let pTimer;
+["pmin", "pmax", "emax"].forEach(id => $(id).addEventListener("input", () => {
+  clearTimeout(pTimer);
+  pTimer = setTimeout(() => {
+    st.pmin = toNum($("pmin").value); st.pmax = toNum($("pmax").value); st.emax = toNum($("emax").value);
+    if (st.pmin != null && st.pmax != null && st.pmin > st.pmax) [st.pmin, st.pmax] = [st.pmax, st.pmin];
+    $("prizeBox").classList.toggle("on", priceSet()); $("entryBox").classList.toggle("on", st.emax != null);
+    render();
+  }, 300);
+}));
 $("entrySeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; st.entry = b.dataset.entry; syncControls(); render(); });
 $("row3").addEventListener("click", e => {
   const b = e.target.closest(".toggle"); if (!b) return;
@@ -509,7 +556,7 @@ $("row3").addEventListener("click", e => {
   syncControls(); render();
 });
 $("cats").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; st.cat = st.cat === b.dataset.c ? "" : b.dataset.c; render(); });
-$("reset").addEventListener("click", () => { Object.assign(st, {q:"", entry:"", cat:"", t:new Set(), safety:"", src:""}); syncControls(); render(); });
+$("reset").addEventListener("click", () => { Object.assign(st, {q:"", entry:"", cat:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null}); syncControls(); render(); });
 $("moreBtn").addEventListener("click", appendPage);
 $("grid").addEventListener("click", e => {
   const b = e.target.closest(".more-btn"); if (!b) return;

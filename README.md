@@ -7,6 +7,7 @@ A public, static listing of live UK prize competitions and draws (cash, cars, ho
 ## Features
 - Prize pictures on every card (taken from the source listing; a category placeholder is shown when a source has none or blocks the image).
 - Search, Free / Paid switch, prize categories with live counts, quick toggles (new today, ends within 24h, radio, has picture), safety and source filters – all client-side.
+- Price filters: a prize-value range (e.g. £1 – £1,000) and an "entry up to £…" limit (0 = free only).
 - Sort by newest, ending soonest, biggest prize, cheapest entry or fewest entries so far. The current filters are kept in the address bar, so a view can be bookmarked or shared.
 - Live countdowns to closing time (UK time), tickets-sold bars, and a "Details" panel per card with how to enter, the £30/month budget helper and why it got its safety badge.
 - Per-listing **safety badge** (Verified / Unverified / Caution); serious warnings are shown on the card itself.
@@ -22,6 +23,8 @@ A public, static listing of live UK prize competitions and draws (cash, cars, ho
 Run locally: `pip install -r requirements.txt && python -m comptracker.ci --state /tmp/state.json --out /tmp/site` (first run with an empty state is a slow baseline run; nothing is flagged "New" for it), then serve `web/index.html` next to `/tmp/site/competitions.json` (e.g. copy both into one folder and `python -m http.server`).
 
 Add a source: write a function in `comptracker/sources.py` decorated with `@source(...)`; it is picked up automatically.
+
+Sources: Loquax (+ Win-a-House), ThePrizeFinder, Competition Showroom (+ BOTB and 7days pages), FindCompetitions, Competitions Time, Competitions Today, MSE Competitions Time, Latest Deals, Dream Car Giveaways, Omaze, Nitrous, Compete For Cars, ITV Win, olive magazine, and radio stations from Global, Bauer (Hello Rayo) and talkSPORT.
 
 ## ⚠️ Safety & disclaimer
 - **18+ only.** Nothing here enters competitions for you.

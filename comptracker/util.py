@@ -71,6 +71,7 @@ def prize_value_from_text(text):
     cands = []
     if m:
         v = float(m.group(1).replace(",", "")); s = (m.group(2) or "").lower()
+        if "," in m.group(1) and s == "k": s = ""   # "£111,222.33k" is already in pounds
         v *= {"k": 1e3, "m": 1e6, "million": 1e6}.get(s, 1)
         return v
     for m in re.finditer(r"£\s?([\d,]+(?:\.\d+)?)\s?(k|m|million)?(?![\w])", t, re.I):
@@ -79,6 +80,7 @@ def prize_value_from_text(text):
         try: v = float(m.group(1).replace(",", ""))
         except ValueError: continue
         s = (m.group(2) or "").lower()
+        if "," in m.group(1) and s == "k": s = ""
         v *= {"k": 1e3, "m": 1e6, "million": 1e6}.get(s, 1)
         cands.append(v)
     return max(cands) if cands else None

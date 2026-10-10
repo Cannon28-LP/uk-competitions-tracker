@@ -2,19 +2,19 @@
 import re, urllib.parse
 
 AGGREGATOR_DOMAINS = ("loquax.co.uk", "theprizefinder.com", "competitionshowroom.com", "moneysavingexpert.com", "competitions-time.co.uk",
-                      "competitionstoday.co.uk", "findcompetitions.com")
+                      "competitionstoday.co.uk", "findcompetitions.com", "latestdeals.co.uk")
 ESTABLISHED = ["botb", "best of the best", "omaze", "dream car giveaways", "dreamcargiveaways", "7 days performance", "7days performance", "7daysperformance",
                "elite competitions", "revcomps", "rev comps", "click competitions", "clickcompetitions", "raffall", "mckinney", "hittin it big"]
 # Only the first few are 'long-running, large'; rest = well-known in the comping community (still check T&Cs!)
 BIG_BRANDS = ["tesco", "sainsbury", "asda", "morrisons", "waitrose", "aldi", "lidl", "amazon", "currys", "argos", "john lewis", "marks & spencer", "m&s", "boots",
               "ikea", "itv", "bbc", "channel 4", "channel 5", "heart", "smooth radio", "global", "capital", "classic fm", "mumsnet", "which?", "dfs", "dyson", "samsung",
               "apple", "sony", "nintendo", "lego", "disney", "tui", "jet2", "marella", "p&o", "center parcs", "haven", "butlins", "premier inn", "pan macmillan", "penguin",
-              "harpercollins", "hachette", "radio times", "good housekeeping", "woman&home", "hello!", "the sun", "mirror", "express", "telegraph", "guardian", "times holidays",
+              "harpercollins", "hachette", "radio times", "olive magazine", "good housekeeping", "woman&home", "hello!", "the sun", "mirror", "express", "telegraph", "guardian", "times holidays",
               "british airways", "easyjet", "ryanair", "virgin", "heinz", "kellogg", "nestle", "cadbury", "walkers", "pepsi", "coca-cola", "unilever", "p&g", "loreal",
               "boohoo", "next", "asos", "very", "tombola", "nationwide", "which", "english heritage", "national trust", "love2shop", "buyagift"]
 BIG_DOMAINS = ("tesco.com", "sainsburys.co.uk", "asda.com", "amazon.co.uk", "currys.co.uk", "argos.co.uk", "johnlewis.com", "itv.com", "bbc.co.uk", "bbc.com",
                "channel4.com", "mumsnet.com", "dfs.co.uk", "dyson.co.uk", "samsung.com", "lego.com", "tui.co.uk", "jet2holidays.com", "radiotimes.com", "smoothradio.com",
-               "heart.co.uk", "goodhousekeeping.com", "panmacmillan.com", "nationwide.co.uk", "ikea.com", "boots.com", "mandmdirect.com", "waitrose.com")
+               "heart.co.uk", "goodhousekeeping.com", "olivemagazine.com", "panmacmillan.com", "nationwide.co.uk", "ikea.com", "boots.com", "mandmdirect.com", "waitrose.com")
 SCAM_TLDS = (".xyz", ".top", ".click", ".monster", ".icu", ".buzz", ".cyou", ".sbs", ".rest", ".cfd", ".gq", ".tk", ".ml", ".cf", ".ga", ".work", ".vip", ".bid", ".loan")
 SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "cutt.ly", "rb.gy", "shorturl.at", "tiny.cc")
 SCAM_WORDS = re.compile(r"(congratulations|you(?:'|’)?ve been selected|you have been selected|you(?:'|’)ve won|claim your prize (?:now|today)|act now|urgent|limited slots|"
@@ -96,7 +96,8 @@ def assess(item, site=None):
         flag("low", "No named promoter/company on the listing.")
     if paid and not free_route:
         flag("medium", "Paid draw and I couldn't confirm a free (postal) entry route – UK law normally requires one or a genuine skill test.")
-    if site and site.get("checked") and not site.get("terms") and paid:
+    big_site = any(d == b or d.endswith("." + b) for b in BIG_DOMAINS)   # big brands' home pages are often JS-built, so the link check misses their T&Cs
+    if site and site.get("checked") and not site.get("terms") and paid and not big_site:
         flag("medium", "No Terms & Conditions link found on the operator's website.")
     if any(d.endswith(t) for t in SCAM_TLDS) or d in SHORTENERS:
         flag("high", f"Suspicious web address ({d}).")
