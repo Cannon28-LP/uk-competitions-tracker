@@ -7,6 +7,11 @@ from .util import (LONDON, now, parse_date, infer_year, money, pence_or_pounds, 
 
 REGISTRY = {}
 
+# Sources deliberately NOT collected (shown on the page's status table so nobody assumes they are covered).
+EXCLUDED = {
+    "Radio: talkSPORT": "talkSPORT's robots.txt disallows automated access to its competitions pages, so it is not collected. (Its competitions are not listed here.)",
+}
+
 def source(name, kind, url, note="", direct=False):
     def deco(fn):
         REGISTRY[name] = dict(fn=fn, kind=kind, url=url, note=note, direct=direct, name=name)
@@ -698,7 +703,8 @@ def _ld_items(html):
 def latestdeals(ctx):
     seen = {}
     for page in range(1, ctx.cap("ld_pages", 8) + 1):
-        r = ctx.get(LD + "/competitions" + (f"?page={page}" if page > 1 else ""))
+        # a 202 means "accepted but not ready" (or a bot-challenge); the fetcher polls with backoff, giving up after a few tries
+        r = ctx.get(LD + "/competitions" + (f"?page={page}" if page > 1 else ""), retries=5 if page == 1 else 3)
         if not r: break
         got = _ld_items(r.text)
         new = [d for d in got if d["_id"] not in seen]
@@ -733,7 +739,7 @@ ITV = "https://www.itv.com/win"
 
 @source("ITV Win", "operator", ITV + "/", "ITV's competitions hub (This Morning, GMB, Loose Women...). One request per run to the JSON the page itself loads.", direct=True)
 def itv_win(ctx):
-    r = ctx.get(ITV + "/api/v9/init")
+    r = ctx.get(ITV + "/api/v9/init", timeout=(10, 75), retries=4)   # big JSON (~200 KB); has timed out from CI runners at 30s
     if not r: return []
     try: data = r.json()
     except ValueError:
@@ -893,38 +899,3 @@ def radio_bauer(ctx):
     ctx.meta["stations_ok"] = n_ok
     return out
 
-@source("Radio: talkSPORT", "radio", "https://talksport.com/competitions/", "Wireless/News UK. Closing dates read from each competition's public terms text (cached).")
-def radio_talksport(ctx):
-    r = ctx.get("https://talksport.com/competitions/")
-    if not r: return []
-    items = {}; imgs = {}
-    for a in soup(r).select('a[href^="/competitions/"]'):
-        t = clean(a.get_text()); h = a["href"]
-        if not re.match(r"^/competitions/\d+/", h) or len(t) < 8: continue
-        items.setdefault("https://talksport.com" + h, t)
-        if not imgs.get("https://talksport.com" + h):
-            imgs["https://talksport.com" + h] = img_url(a, "https://talksport.com/") or img_url(a.parent, "https://talksport.com/")
-    n = 0; cap = ctx.cap("talksport", 20)
-    for l in items:
-        if ctx.cache_get(l) or n >= cap: continue
-        rr = ctx.get(l); n += 1
-        if not rr: continue
-        ss = soup(rr)
-        for x in ss(["script", "style", "noscript"]): x.decompose()
-        txt = clean(ss.get_text(" "))
-        m = re.search(r"closes at (\d{1,2})[.:](\d{2})\s*(AM|PM)[^.]{0,20}?on (\d{1,2}(?:st|nd|rd|th)? \w+ 20\d\d)", txt, re.I)
-        d = {}
-        if m:
-            c = parse_date(m.group(4))
-            if c:
-                h = int(m.group(1)) % 12 + (12 if m.group(3).upper() == "PM" else 0)
-                d["closes"] = c.replace(hour=h, minute=int(m.group(2))).isoformat()
-        ctx.cache_put(l, d)
-    out = []
-    for l, t in items.items():
-        d = ctx.cache_get(l) or {}
-        closes = datetime.fromisoformat(d["closes"]) if d.get("closes") else None
-        out.append(_radio_rec(title=t, promoter="talkSPORT", station="talkSPORT", link=l, prize_desc=t, prize_value=prize_value_from_text(t),
-                              closes_at=closes, closes_precision="exact" if closes else "",
-                              entry_note="talkSPORT competition (UK 18+); entry method on the page.", skey=l, image=imgs.get(l, "")))
-    return out

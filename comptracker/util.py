@@ -1,4 +1,4 @@
-import re, time, json, urllib.robotparser, urllib.parse, logging
+import re, time, json, random, urllib.robotparser, urllib.parse, logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import requests
@@ -98,15 +98,25 @@ def norm_promoter(s):
     return re.sub(r"[^a-z0-9]+", "", s)
 
 class Fetcher:
-    """Polite fetcher: robots.txt check, per-host delay, identifiable UA, no cookies persisted across logins."""
-    def __init__(self, delay=1.0):
+    """Polite fetcher: robots.txt check, per-host delay, identifiable UA, no cookies persisted across logins.
+
+    Reliability: transient failures (timeouts, connection errors, 5xx, 429, HTTP 202 'not ready') are retried with
+    exponential backoff + jitter; 403/404 are final (retrying a block only makes us less polite). After a few 403s from
+    one host in a run, the host is skipped for the rest of the run instead of hammering it."""
+    RETRY_STATUS = {202, 408, 425, 429, 500, 502, 503, 504}
+
+    def __init__(self, delay=1.0, retries=3, timeout=(10, 30), backoff=2.0, max_backoff=20.0, host_block_after=3):
         self.s = requests.Session()
         self.s.headers.update({"User-Agent": UA, "Accept-Language": "en-GB,en;q=0.8"})
         self.delay = delay
+        self.retries, self.timeout, self.backoff, self.max_backoff = retries, timeout, backoff, max_backoff
+        self.host_block_after = host_block_after
         self.last = {}
         self.robots = {}
+        self.blocked = {}      # host -> consecutive 403 count
         self.errors = []
         self.count = 0
+        self.retried = 0
 
     def _robots(self, url):
         p = urllib.parse.urlsplit(url)
@@ -114,7 +124,7 @@ class Fetcher:
         if host not in self.robots:
             rp = urllib.robotparser.RobotFileParser()
             try:
-                r = self.s.get(host + "/robots.txt", timeout=15)
+                r = self.s.get(host + "/robots.txt", timeout=(10, 15))
                 if r.status_code == 200 and "html" not in r.headers.get("content-type", "") and "<html" not in r.text[:300].lower():
                     rp.parse(r.text.splitlines())
                 else:
@@ -130,32 +140,53 @@ class Fetcher:
         except Exception:
             return True
 
-    def get(self, url, **kw):
+    def _sleep_backoff(self, attempt, retry_after=None):
+        d = min(self.max_backoff, self.backoff * (2 ** (attempt - 1))) * random.uniform(0.8, 1.25)
+        if retry_after is not None: d = max(d, min(float(retry_after), 30.0))
+        time.sleep(d)
+
+    def get(self, url, timeout=None, retries=None, **kw):
         if not self.allowed(url):
             self.errors.append(f"robots-disallowed {url}")
             log.warning("robots disallow %s", url)
             return None
         host = urllib.parse.urlsplit(url).netloc
-        wait = self.delay - (time.time() - self.last.get(host, 0))
-        if wait > 0: time.sleep(wait)
-        for attempt in (1, 2):
+        if self.blocked.get(host, 0) >= self.host_block_after:
+            self.errors.append(f"HTTP 403 (host blocked this run, skipped) {url}")
+            return None
+        attempts = max(1, (self.retries if retries is None else retries))
+        last_err = ""
+        for attempt in range(1, attempts + 1):
+            wait = self.delay - (time.time() - self.last.get(host, 0))
+            if wait > 0: time.sleep(wait)
+            retry_after = None
+            t0 = time.time()
             try:
-                r = self.s.get(url, timeout=30, **kw)
-                self.last[host] = time.time()
-                self.count += 1
-                if r.status_code == 200:
+                r = self.s.get(url, timeout=timeout or self.timeout, **kw)
+                self.last[host] = time.time(); self.count += 1
+                sc = r.status_code
+                if sc == 200:
+                    self.blocked[host] = 0
                     return r
-                if r.status_code in (403, 429, 503):
-                    self.errors.append(f"HTTP {r.status_code} {url}")
+                if sc == 403:
+                    self.blocked[host] = self.blocked.get(host, 0) + 1
+                    self.errors.append(f"HTTP 403 {url}")
                     return None
-                if r.status_code == 404:
-                    self.errors.append(f"HTTP 404 {url}")
+                if sc in (404, 410):
+                    self.errors.append(f"HTTP {sc} {url}")
                     return None
-                self.errors.append(f"HTTP {r.status_code} {url}")
-            except Exception as e:
+                waf = r.headers.get("x-amzn-waf-action") or r.headers.get("cf-mitigated") or ""
+                last_err = f"HTTP {sc}" + (f" ({'bot-challenge: ' + waf if waf else 'not ready / accepted-only response'})" if sc == 202 else "") + f" {url}"
+                if sc not in self.RETRY_STATUS:
+                    self.errors.append(last_err); return None
+                ra = r.headers.get("retry-after")
+                retry_after = int(ra) if ra and ra.isdigit() else None
+            except requests.RequestException as e:
                 self.last[host] = time.time()
-                if attempt == 2:
-                    self.errors.append(f"{type(e).__name__} {url}")
-                    return None
-                time.sleep(3)
+                last_err = f"{type(e).__name__} {url} (after {time.time() - t0:.0f}s)"
+            if attempt < attempts:
+                self.retried += 1
+                log.info("retry %d/%d %s", attempt, attempts - 1, last_err)
+                self._sleep_backoff(attempt, retry_after)
+        self.errors.append(last_err + f" [gave up after {attempts} attempts]")
         return None

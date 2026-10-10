@@ -24,7 +24,9 @@ Run locally: `pip install -r requirements.txt && python -m comptracker.ci --stat
 
 Add a source: write a function in `comptracker/sources.py` decorated with `@source(...)`; it is picked up automatically.
 
-Sources: Loquax (+ Win-a-House), ThePrizeFinder, Competition Showroom (+ BOTB and 7days pages), FindCompetitions, Competitions Time, Competitions Today, MSE Competitions Time, Latest Deals, Dream Car Giveaways, Omaze, Nitrous, Compete For Cars, ITV Win, olive magazine, and radio stations from Global, Bauer (Hello Rayo) and talkSPORT.
+Sources: Loquax (+ Win-a-House), ThePrizeFinder, Competition Showroom (+ BOTB and 7days pages), FindCompetitions, Competitions Time, Competitions Today, MSE Competitions Time, Latest Deals, Dream Car Giveaways, Omaze, Nitrous, Compete For Cars, ITV Win, olive magazine, and radio stations from Global and Bauer (Hello Rayo).
+
+**Deliberately not collected:** talkSPORT (its robots.txt disallows automated access to its competitions pages, so it is excluded and not listed). Sources that block the CI runners are reported as stale/down rather than silently served from old data.
 
 ## ⚠️ Safety & disclaimer
 - **18+ only.** Nothing here enters competitions for you.

@@ -9,7 +9,7 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.environ.get("COMP_DB") or os.path.join(BASE, "data", "comps.db")
 log = logging.getLogger("comp")
 
-SRC_PRIORITY = ["Radio: Global (Heart, Capital, Smooth, Classic FM, Radio X…)", "Radio: Bauer / Hello Rayo (Kiss, Absolute, Hits, Magic, Jazz FM, Clyde…)", "Radio: talkSPORT", "ITV Win", "Dream Car Giveaways", "Omaze", "Nitrous Competitions", "Compete For Cars", "FindCompetitions", "Competition Showroom",
+SRC_PRIORITY = ["Radio: Global (Heart, Capital, Smooth, Classic FM, Radio X…)", "Radio: Bauer / Hello Rayo (Kiss, Absolute, Hits, Magic, Jazz FM, Clyde…)", "ITV Win", "Dream Car Giveaways", "Omaze", "Nitrous Competitions", "Compete For Cars", "FindCompetitions", "Competition Showroom",
                 "BOTB (via Showroom)", "7days Performance (via Showroom)", "Loquax Win-a-House", "ThePrizeFinder", "MSE Competitions Time",
                 "Competitions Time", "Competitions Today", "olive magazine", "Latest Deals", "Loquax"]
 PREC_RANK = {"exact": 0, "date": 1, "approx": 2, "": 3}
@@ -36,9 +36,12 @@ class Ctx:
         self.name = name; self.f = fetcher; self.db = db; self.caps = caps; self.meta = {}
         self.errors = []; self._cache = {}
         self.used = {}
-    def get(self, url):
+        self.deadline = time.time() + caps.get("source_budget_s", 600)   # one slow source must not eat the whole job
+    def get(self, url, **kw):
         n0 = len(self.f.errors)
-        r = self.f.get(url)
+        if self.deadline and time.time() > self.deadline:
+            self.errors.append(f"source time budget exceeded, skipped {url}"); return None
+        r = self.f.get(url, **kw)
         if r is None: self.errors.extend(self.f.errors[n0:])
         return r
     def cap(self, k, default): return self.caps.get(k, default)
@@ -272,7 +275,7 @@ def check_sites(db, fetcher, items, cap=30):
     for d, link in todo[:cap]:
         data = {"checked": False}
         base = re.match(r"https?://[^/]+", link).group(0)
-        r = fetcher.get(base + "/")
+        r = fetcher.get(base + "/", retries=2)
         if r is not None:
             from bs4 import BeautifulSoup
             s = BeautifulSoup(r.text, "lxml")
