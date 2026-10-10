@@ -233,6 +233,8 @@ class Fetcher:
                 last_err = f"HTTP {sc}" + (f" ({'bot-challenge: ' + waf if waf else 'not ready / accepted-only response'})" if sc == 202 else "") + f" {url}"
                 if sc not in self.RETRY_STATUS:
                     self.errors.append(last_err); return None
+                if sc == 202 and waf:      # a WAF bot-challenge never resolves by waiting; one re-check at most, and we do not try to solve it
+                    attempts = min(attempts, attempt + 1)
                 ra = r.headers.get("retry-after")
                 retry_after = int(ra) if ra and ra.isdigit() else None
             except requests.RequestException as e:

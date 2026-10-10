@@ -734,7 +734,7 @@ def latestdeals(ctx):
     seen = {}
     for page in range(1, ctx.cap("ld_pages", 8) + 1):
         # a 202 means "accepted but not ready" (or a bot-challenge); the fetcher polls with backoff, giving up after a few tries
-        r = ctx.get(LD + "/competitions" + (f"?page={page}" if page > 1 else ""), retries=5 if page == 1 else 3)
+        r = ctx.get(LD + "/competitions" + (f"?page={page}" if page > 1 else ""), retries=3 if page == 1 else 2)
         if not r: break
         got = _ld_items(r.text)
         new = [d for d in got if d["_id"] not in seen]
@@ -769,7 +769,7 @@ ITV = "https://www.itv.com/win"
 
 @source("ITV Win", "operator", ITV + "/", "ITV's competitions hub (This Morning, GMB, Loose Women...). One request per run to the JSON the page itself loads.", direct=True)
 def itv_win(ctx):
-    r = ctx.get(ITV + "/api/v9/init", timeout=(10, 75), retries=4)   # big JSON (~200 KB); has timed out from CI runners at 30s
+    r = ctx.get(ITV + "/api/v9/init", timeout=(10, 45), retries=2)   # ~200 KB JSON; from GitHub runners it times out even at 75s x4 (host appears to tarpit datacentre IPs), so fail fast
     if not r: return []
     try: data = r.json()
     except ValueError:
