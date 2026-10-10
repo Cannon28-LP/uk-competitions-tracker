@@ -4,32 +4,41 @@ on:
   schedule:
     - cron: "17 * * * *"      # hourly, at minute 17 (UTC)
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Debug: run only these sources (comma-separated exact names). Leave empty for a normal full run."
+        required: false
+        default: ""
 
-# never run two collectors at once (a full run takes ~12-15 min); let a running one finish
+# never run two collectors at once (a full run takes ~10-15 min); let a running one finish
 concurrency:
   group: update-competitions
   cancel-in-progress: false
 
 permissions:
-  contents: write     # push state/data to the `data` branch
+  contents: write     # push state/data to the `data` branch (+ the rare keep-alive commit)
+  actions: write      # keep-alive: re-enable this workflow so GitHub's 60-day inactivity pause never applies
   pages: write
   id-token: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   collect:
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
+    runs-on: ubuntu-24.04      # pinned: `ubuntu-latest` moves to Ubuntu 26 on 19 Oct 2026
+    timeout-minutes: 45
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Checkout data branch (state.json + last competitions.json)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: data
           path: databr
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -38,7 +47,15 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run collector
-        run: python -u -m comptracker.ci --state databr/state.json --out _site
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          args=()
+          if [ -n "$ONLY" ]; then
+            IFS=',' read -r -a names <<< "$ONLY"
+            args=(--only "${names[@]}")
+          fi
+          python -u -m comptracker.ci --state databr/state.json --out _site "${args[@]}"
 
       - name: Assemble site
         run: |
@@ -57,17 +74,43 @@ jobs:
           git commit -q -m "Update data $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push --force origin data-new:data
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
+      # ---- keep the hourly schedule alive -------------------------------------------------------------
+      # GitHub pauses scheduled workflows after 60 days without repository activity. Two cheap safeguards:
+      #  1. re-enable this workflow through the API (resets the inactivity timer; harmless if already enabled)
+      #  2. if `main` has had no commit for 30+ days, add one tiny keep-alive commit (does not trigger this workflow)
+      - name: Keep-alive
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/update.yml/enable" && echo "workflow re-enabled (keep-alive)"
+          last=$(git log -1 --format=%ct)
+          age_days=$(( ( $(date +%s) - last ) / 86400 ))
+          echo "last commit on main: ${age_days} day(s) ago"
+          if [ "$age_days" -ge 30 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            date -u +'%Y-%m-%d' > .github/keepalive
+            git add .github/keepalive
+            git commit -q -m "chore: keep-alive (repository had no commits for ${age_days} days)" && git push origin HEAD:main
+          fi
+          # schedule health: warn if no scheduled run has happened for >3h (cron can be delayed, but not for long)
+          n=$(gh run list --workflow update.yml --event schedule --limit 1 --json createdAt --jq '.[0].createdAt' 2>/dev/null)
+          echo "latest scheduled run: ${n:-none yet}"
+          if [ -z "$n" ]; then echo "::warning::No scheduled (cron) run has been seen yet"; fi
+
   deploy:
     needs: collect
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
