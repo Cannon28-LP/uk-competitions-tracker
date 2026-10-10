@@ -255,7 +255,8 @@ def merge_and_store(db, fetcher, t0, summary=None):
         item["tags"] = tags
         if item["prize_value"] is None:
             item["prize_value"] = prize_value_from_text(item["title"])
-        item["category"] = classify(item["title"], item["prize_desc"] if item["prize_desc"] != item["title"] else "")
+        item["category"], item["subcategory"] = classify(item["title"], item["prize_desc"] if item["prize_desc"] != item["title"] else "",
+                                                         item.get("entry_note") or "")
         item["prize_type"] = prize_type(item["category"])
         item["prize_value"], item["prize_value_claimed"], item["prize_value_note"] = valuecheck.check(item)
         # first seen: earliest of the members' own first-seen and anything we remembered about this title (so a source that

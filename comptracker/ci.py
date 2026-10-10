@@ -8,7 +8,7 @@ the fetch cache, site checks, source status and meta. competitions.json is what 
 """
 import argparse, json, os, sqlite3, sys, tempfile, logging
 from . import collector, sources
-from .classify import CATEGORIES
+from .classify import CATEGORIES, TAXONOMY
 from .util import now
 from datetime import timedelta, datetime
 
@@ -66,7 +66,7 @@ def build_site_json(db):
                              dropped_stale=ri.get("dropped_stale", 0), shown=by_src.get(s["source"], 0)))
     excluded = [dict(source=k, reason=v) for k, v in sources.EXCLUDED.items()]
     return dict(last_updated=meta.get("last_updated"), last_run_start=meta.get("last_run_start"), baseline_at=base,
-                categories=CATEGORIES, total=len(items), items=items, by_source=by_src,
+                categories=CATEGORIES, subcategories=TAXONOMY, total=len(items), items=items, by_source=by_src,
                 sources=out_srcs, excluded_sources=excluded, stale_after_hours=collector.STALE_DROP_H,
                 run_stats={k: v for k, v in stats.items() if k != "sources"})
 
