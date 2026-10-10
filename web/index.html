@@ -67,6 +67,11 @@ select:focus{outline:none;border-color:var(--acc)}
 .seg button{border:0;background:none;padding:6px 13px;border-radius:7px;cursor:pointer;font-size:14px;color:var(--tx2)}
 .seg button[aria-pressed=true]{background:var(--acc);color:var(--acc-tx);font-weight:600}
 .row2{margin-top:9px;display:flex}
+.row-sub{margin-top:6px;padding-left:2px}
+.row-sub[hidden]{display:none}
+.chip.sub{font-size:13px;padding:4px 10px;background:transparent;border-style:dashed}
+.chip.sub[aria-pressed=true]{border-style:solid;background:var(--acc-soft)}
+.tag.t-cat{background:rgba(0,0,0,.55);color:#fff}
 .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);padding-right:40px}
 .chips::-webkit-scrollbar{display:none}
 .chip,.toggle{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap;color:var(--tx2)}
@@ -226,6 +231,7 @@ th{color:var(--tx3);font-weight:600}
     </select>
   </div>
   <div class="row2"><div class="chips" id="cats" role="group" aria-label="Prize category"></div></div>
+  <div class="row2 row-sub" id="subrow" hidden><div class="chips" id="subs" role="group" aria-label="Prize sub-category"></div></div>
   <div class="row3" id="row3">
     <div class="grp grp-t">
     <button type="button" class="toggle" data-t="fresh" aria-pressed="false">🆕 New today</button>
@@ -268,10 +274,11 @@ const BUDGET = 30, PAGE = 48;
 const CAT_META = {
   "Cars":["🚗",215],"Motorbikes":["🏍️",15],"Boats":["🚤",195],"Holidays/Travel":["✈️",185],"Money/Cash":["💷",140],
   "Tech/Gadgets":["📱",255],"Home/Property":["🏠",28],"Experiences/Events":["🎟️",300],"Gift cards/Vouchers":["🎁",330],
-  "Fashion/Beauty":["💄",320],"Food/Drink":["🍽️",35],"Family/Kids":["🧸",45],"Other":["⭐",230]
+  "Fashion/Beauty":["💄",320],"Food/Drink":["🍽️",35],"Family/Kids":["🧸",45],"Sport/Fitness":["🏅",160],
+  "Books/Music/Film":["📚",265],"Gifts/Bundles":["🎀",345],"Other":["⭐",230]
 };
 const $ = id => document.getElementById(id);
-const st = {q:"", entry:"", sort:"new", cat:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true};
+const st = {q:"", entry:"", sort:"new", cat:"", sub:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true};
 const priceSet = () => st.pmin != null || st.pmax != null;
 let DATA = null, ITEMS = [], BYID = new Map(), LIST = [], shown = 0, cdEls = [];
 
@@ -325,7 +332,7 @@ function prep(){
       _base: base,
       _img: safeUrl(it.image),
       _radio: (it.tags || []).includes("radio"),
-      _hay: [it.title, it.promoter, it.station, it.prize_desc, it.category, it.sources.join(" ")].join(" ").toLowerCase()
+      _hay: [it.title, it.promoter, it.station, it.prize_desc, it.category, it.subcategory, it.sources.join(" ")].join(" ").toLowerCase()
     });
   }).filter(it => (it._cl == null || it._cl > now) && !/^\W{0,4}(?:competition\s+|now\s+)?(?:closed|ended|expired)\b/i.test(it.title));
   // some sources publish the same competition at several addresses (e.g. ".../win-x" and ".../win-x-0"):
@@ -345,8 +352,10 @@ function prep(){
 const isNew = it => it.new_ok !== false && !!it._base && it._fs > it._base && Date.now() - it._fs < 864e5;
 
 /* ---------- filtering & sorting ---------- */
-function match(it, skipCat){
-  if (!skipCat && st.cat && it.category !== st.cat) return false;
+// skip: "cat" ignores the category AND sub-category filter (main-chip counts); "sub" ignores only the sub-category (sub-chip counts)
+function match(it, skip){
+  if (skip !== "cat" && st.cat && it.category !== st.cat) return false;
+  if (skip !== "cat" && skip !== "sub" && st.sub && it.subcategory !== st.sub) return false;
   if (st.entry && it.entry_type !== st.entry) return false;
   if (st.src && !it.sources.includes(st.src)) return false;
   if (st.safety === "verified" && it.safety.badge !== "Verified") return false;
@@ -408,7 +417,7 @@ function card(it){
   <div class="media">
     <div class="ph" style="--h:${hue}"><span>${emoji}</span></div>
     ${it._img ? `<img src="${esc(it._img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}
-    <div class="ov"><div class="ov-l">${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
+    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
   </div>
   <div class="body">
     <div class="kicker"><span class="b b-${esc(sf.badge)}" title="${esc((sf.reason ? sf.reason + " – " : "") + "automated safety guide, not a guarantee")}">${icon} ${esc(sf.badge)}</span><span class="prom" title="${esc(promoter)}">${esc(promoter)}</span></div>
@@ -454,21 +463,31 @@ function detailsHtml(it){
 
 /* ---------- rendering ---------- */
 function renderCats(){
-  const base = ITEMS.filter(it => match(it, true));
+  const base = ITEMS.filter(it => match(it, "cat"));
   const counts = {}; base.forEach(it => counts[it.category] = (counts[it.category] || 0) + 1);
   const cats = (DATA.categories || Object.keys(CAT_META)).filter(c => counts[c] || st.cat === c);
   $("cats").innerHTML = `<button type="button" class="chip" data-c="" aria-pressed="${st.cat === ""}">All<span class="n">${num(base.length)}</span></button>` +
     cats.map(c => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${st.cat === c}">${(CAT_META[c] || CAT_META.Other)[0]} ${esc(c)}<span class="n">${num(counts[c] || 0)}</span></button>`).join("");
+  // second level: sub-category chips for the chosen main category (counts respect every other active filter)
+  const row = $("subrow");
+  if (!st.cat){ row.hidden = true; $("subs").innerHTML = ""; return; }
+  const inCat = ITEMS.filter(it => it.category === st.cat && match(it, "sub"));
+  const sc = {}; inCat.forEach(it => { const k = it.subcategory || "Unclear"; sc[k] = (sc[k] || 0) + 1; });
+  const order = (DATA.subcategories && DATA.subcategories[st.cat]) || Object.keys(sc);
+  const subs = order.filter(x => sc[x] || st.sub === x);
+  row.hidden = subs.length === 0;
+  $("subs").innerHTML = `<button type="button" class="chip sub" data-s="" aria-pressed="${st.sub === ""}">All ${esc(st.cat)}<span class="n">${num(inCat.length)}</span></button>` +
+    subs.map(x => `<button type="button" class="chip sub" data-s="${esc(x)}" aria-pressed="${st.sub === x}">${esc(x)}<span class="n">${num(sc[x] || 0)}</span></button>`).join("");
 }
 function render(keepScroll){
   if (!DATA) return;
   renderCats();
-  LIST = ITEMS.filter(it => match(it, false)).sort(SORTS[st.sort]);
+  LIST = ITEMS.filter(it => match(it)).sort(SORTS[st.sort]);
   shown = 0; cdEls = [];
   $("grid").textContent = "";
   appendPage();
   $("empty").hidden = LIST.length > 0;
-  $("reset").hidden = !(st.q || st.entry || st.cat || st.t.size || st.safety || st.src || priceSet() || st.emax != null || !st.unk);
+  $("reset").hidden = !(st.q || st.entry || st.cat || st.sub || st.t.size || st.safety || st.src || priceSet() || st.emax != null || !st.unk);
   syncUrl();
   if (!keepScroll){   // results changed: bring the top of the list back into view
     const y = $("toolbar").offsetTop;
@@ -521,6 +540,7 @@ function syncUrl(){
   if (st.entry) p.set("entry", st.entry);
   if (st.sort !== "new") p.set("sort", st.sort);
   if (st.cat) p.set("cat", st.cat);
+  if (st.sub) p.set("sub", st.sub);
   if (st.t.size) p.set("t", [...st.t].join(","));
   if (st.safety) p.set("safety", st.safety);
   if (st.src) p.set("src", st.src);
@@ -537,6 +557,7 @@ function readUrl(){
   st.entry = ["free", "paid"].includes(p.get("entry")) ? p.get("entry") : "";
   st.sort = SORTS[p.get("sort")] ? p.get("sort") : "new";
   st.cat = p.get("cat") || "";
+  st.sub = st.cat ? (p.get("sub") || "") : "";
   st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics"].includes(x)));
   st.safety = ["verified", "nocaution"].includes(p.get("safety")) ? p.get("safety") : "";
   st.src = p.get("src") || "";
@@ -586,8 +607,9 @@ $("row3").addEventListener("click", e => {
   const k = b.dataset.t; st.t.has(k) ? st.t.delete(k) : st.t.add(k);
   syncControls(); render();
 });
-$("cats").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; st.cat = st.cat === b.dataset.c ? "" : b.dataset.c; render(); });
-$("reset").addEventListener("click", () => { Object.assign(st, {q:"", entry:"", cat:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true}); syncControls(); render(); });
+$("cats").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; st.cat = st.cat === b.dataset.c ? "" : b.dataset.c; st.sub = ""; render(); });
+$("subs").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; st.sub = st.sub === b.dataset.s ? "" : b.dataset.s; render(); });
+$("reset").addEventListener("click", () => { Object.assign(st, {q:"", entry:"", cat:"", sub:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true}); syncControls(); render(); });
 $("moreBtn").addEventListener("click", appendPage);
 $("grid").addEventListener("click", e => {
   const b = e.target.closest(".more-btn"); if (!b) return;
