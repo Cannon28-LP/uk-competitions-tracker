@@ -1,7 +1,7 @@
 import os, sys, json, sqlite3, time, re, traceback, logging, fcntl
 from datetime import datetime, timedelta
 from . import sources as S
-from .util import Fetcher, now, LONDON, norm, norm_promoter, prize_value_from_text
+from .util import Fetcher, now, LONDON, norm, norm_promoter, prize_value_from_text, is_closed_title
 from .classify import classify, prize_type
 from . import safety
 
@@ -96,13 +96,15 @@ def run(only=None, caps=None):
             log.error("source %s failed: %s\n%s", name, err, traceback.format_exc())
         errs = list(dict.fromkeys(ctx.errors))
         # normalise + drop blocked/scammy
-        kept = []; blocked_n = 0
+        kept = []; blocked_n = 0; closed_n = 0
         for it in items:
             it["title"] = re.sub(r"\s+", " ", it["title"]).strip()
             if not it["title"]: continue
             why = safety.blocked(it)
             if why:
                 blocked_n += 1; log.info("blocked [%s]: %s (%s)", name, it["title"], why); continue
+            if is_closed_title(it["title"]) or is_closed_title(it.get("prize_desc", "")[:120]):
+                closed_n += 1; log.info("closed [%s]: %s", name, it["title"]); continue
             kept.append(it)
         # dedupe within source
         seenk = {}

@@ -85,6 +85,60 @@ def prize_value_from_text(text):
         cands.append(v)
     return max(cands) if cands else None
 
+# ---------------------------------------------------------------- closed / closing-date helpers
+_CLOSED_TITLE = re.compile(r"^\W{0,4}(?:(?:competition|giveaway|draw|entries|entry|promotion)\s+|now\s+)?(?:closed|ended|expired)\b(?!\s+(?:loop|circuit|captioning|door))", re.I)
+_CLOSED_ANY = re.compile(r"\b(?:this\s+)?(?:competition|giveaway|draw|promotion)\s+(?:is\s+|has\s+)?(?:now\s+)?(?:closed|ended)\b", re.I)
+
+def is_closed_title(title):
+    """'CLOSED: Win tickets…', 'Competition closed – …', 'ENDED …' -> True. Titles only; never guesses from dates."""
+    t = (title or "").strip()
+    return bool(_CLOSED_TITLE.search(t) or _CLOSED_ANY.search(t[:140]))
+
+_MON = "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?"
+_DOW = r"(?:(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)[a-z]*\.?,?\s+)?"
+_DATE = _DOW + r"(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(" + _MON + r")\.?,?\s+(20\d\d)"
+_GAP = r"(?:(?!\.\s+[A-Z])[^;]){0,50}?"
+_CLOSE_RX = re.compile(r"\bclos(?:e|es|ed|ing)\b" + _GAP + r"(?:\bon\b|\bis\b|\bby\b|:|\buntil\b|\bat\b|\bdate\b|\s)\s*" + _DATE, re.I)
+_NUM_CLOSE_RX = re.compile(r"\bclos(?:e|es|ing)\b" + _GAP + r"(\d{1,2})/(\d{1,2})/(20\d\d)", re.I)
+_RANGE_RX = re.compile(r"(?:start date|end date|competition period|runs?|running|run from)" + r"(?:(?!\.\s+[A-Z])[^;]){0,160}?\bfrom\b" + r"(?:(?!\.\s+[A-Z])[^;]){0,40}?\s(?:to|until|till|-|–)\s+" + _DATE, re.I)
+_TIME_RX = re.compile(r"(?<![\d/])(\d{1,2})[.:](\d{2})\s*(am|pm)?(?!\d)|\b(midday|noon)\b", re.I)
+
+def _mk(d, mon, y):
+    mi = MONTHS.get(mon[:3].lower())
+    try: return datetime(int(y), mi, int(d), 23, 59, tzinfo=LONDON) if mi else None
+    except ValueError: return None
+
+def closing_from_text(text):
+    """Conservative closing-date extraction from a promoter's terms / page text.
+    Returns (aware datetime, precision 'date'|'exact') or None. Only explicit 'closes … <day month year>' style statements
+    (or a 'from X to <date with year>' competition period) count; nothing is ever inferred or guessed."""
+    if not text: return None
+    t = re.sub(r"\s+", " ", text.replace("\u00a0", " ").replace("\ufe0f", ""))
+    cands = []
+    for m in _CLOSE_RX.finditer(t):
+        dt = _mk(m.group(1), m.group(2), m.group(3))
+        if not dt: continue
+        seg = t[m.start():m.end()]
+        tm = None
+        for x in _TIME_RX.finditer(seg):
+            tm = x
+        if tm:
+            if tm.group(4): h, mi = 12, 0
+            else:
+                h, mi = int(tm.group(1)), int(tm.group(2))
+                if tm.group(3): h = h % 12 + (12 if tm.group(3).lower() == "pm" else 0)
+            if 0 <= h < 24 and 0 <= mi < 60: dt = dt.replace(hour=h, minute=mi); cands.append((dt, "exact")); continue
+        cands.append((dt, "date"))
+    for m in _NUM_CLOSE_RX.finditer(t):
+        try: cands.append((datetime(int(m.group(3)), int(m.group(2)), int(m.group(1)), 23, 59, tzinfo=LONDON), "date"))
+        except ValueError: pass
+    if not cands:
+        for m in _RANGE_RX.finditer(t):
+            dt = _mk(m.group(1), m.group(2), m.group(3))
+            if dt: cands.append((dt, "date"))
+    if not cands: return None
+    return max(cands, key=lambda c: c[0])
+
 def norm(s):
     s = (s or "").lower()
     s = re.sub(r"&amp;", "&", s)

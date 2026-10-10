@@ -3,7 +3,7 @@ returning a list of dicts (see FIELDS in collector.py). Each gets a Ctx (polite 
 import re, json, urllib.parse, xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
-from .util import (LONDON, now, parse_date, infer_year, money, pence_or_pounds, prize_value_from_text, log)
+from .util import (LONDON, now, parse_date, infer_year, money, pence_or_pounds, prize_value_from_text, log, closing_from_text, is_closed_title)
 
 REGISTRY = {}
 
@@ -83,6 +83,31 @@ def approx_from_left(text):
     if m: return n + timedelta(minutes=int(m.group(1)))
     return None
 
+
+def detail_closing(ctx, urls, cap, recheck_hours=72):
+    """Closing dates from the competition's own page text (terms / 'closing date for entries is…'), via the cached fetch.
+    Only explicit statements are used (util.closing_from_text); pages that state no date are re-checked every `recheck_hours`.
+    Fetches at most `cap` pages per run (uncached first). Returns {url: (datetime, precision)} for pages with a stated date."""
+    found = {}; todo = []
+    for u in urls:
+        c = ctx.cache_get(u)
+        if c and c.get("closes"):
+            found[u] = (datetime.fromisoformat(c["closes"]), c.get("prec") or "date"); continue
+        age = ctx.cache_age_hours(u)
+        if c is None or age is None or age >= recheck_hours: todo.append((0 if c is None else 1, u))
+    todo.sort(); fetched = 0
+    for _, u in todo:
+        if fetched >= cap: break
+        r = ctx.get(u); fetched += 1
+        if not r: continue
+        ss = soup(r)
+        for x in ss(["script", "style", "noscript"]): x.decompose()
+        res = closing_from_text(clean(ss.get_text(" ")))
+        ctx.cache_put(u, {"closes": res[0].isoformat() if res else None, "prec": res[1] if res else "", "v": 2})
+        if res: found[u] = res
+    ctx.meta["detail_dates"] = ctx.meta.get("detail_dates", 0) + len(found)
+    return found
+
 # ---------------------------------------------------------------- Loquax
 LOQ = "https://www.loquax.co.uk"
 
@@ -154,7 +179,7 @@ TPF = "https://www.theprizefinder.com"
 
 @source("ThePrizeFinder", "aggregator", TPF, "Uses its published RSS feeds + public competition pages (details cached; a capped number fetched per run).")
 def prizefinder(ctx):
-    items = {}
+    items = {}; fresh_links = set()
     for feed in ["closing-soon", "top-prizes", "new-competitions"]:
         r = ctx.get(f"{TPF}/feed/{feed}")
         if not r: continue
@@ -167,9 +192,11 @@ def prizefinder(ctx):
             title = clean(it.findtext("title"))
             if link and link not in items:
                 items[link] = title
+            if link and feed == "new-competitions": fresh_links.add(link)
     out = []
-    todo = [l for l in items if not ctx.cache_get(l)]
-    cap = ctx.cap("tpf", 80)
+    # uncached pages first; then pages cached by an older parser that found no date (the date format "(ends YYYY-MM-DD)" was missed)
+    todo = [l for l in items if not ctx.cache_get(l)] + [l for l in items if ctx.cache_get(l) and not ctx.cache_get(l).get("closing") and ctx.cache_get(l).get("v", 1) < 2]
+    cap = ctx.cap("tpf", 110)
     fetched = 0
     for l in todo:
         if fetched >= cap: break
@@ -180,7 +207,9 @@ def prizefinder(ctx):
         text = s.get_text("|", strip=True)
         data = {}
         m = re.search(r"Website Name\|([^|]*)\|", text); data["site"] = m.group(1) if m else ""
-        m = re.search(r"Closing Date:\|(\d{4}-\d{2}-\d{2})", text); data["closing"] = m.group(1) if m else ""
+        # "Closing Date:|2026-10-30" or "Closing Date:|Daily Entry (ends 2026-10-30)"
+        m = re.search(r"Closing Date:\|[^|]*?(\d{4}-\d{2}-\d{2})", text); data["closing"] = m.group(1) if m else ""
+        data["v"] = 2
         m = re.search(r"Instructions\|([^|]*)\|", text); data["instr"] = m.group(1) if m else ""
         m = re.search(r"Restriction\|([^|]*)\|", text); data["restr"] = m.group(1) if m else ""
         ctx.cache_put(l, data)
@@ -196,7 +225,8 @@ def prizefinder(ctx):
         instr = d.get("instr", ""); restr = d.get("restr", "")
         paid = bool(re.search(r"purchase|buy|spend|pay\b|subscription", instr + " " + restr, re.I))
         note = "; ".join(x for x in [instr and "Entry: " + instr, restr and "Restriction: " + restr] if x)
-        out.append(rec(title=re.sub(r"^Win ", "Win ", title), promoter=site_clean, link=l, prize_desc=title,
+        # items that are only in the closing-soon / top-prizes feeds were listed before we looked: don't flag them NEW
+        out.append(rec(title=re.sub(r"^Win ", "Win ", title), promoter=site_clean, link=l, prize_desc=title, backfill=l not in fresh_links,
                        prize_value=prize_value_from_text(title), entry_type="paid" if paid else "free",
                        closes_at=closes, closes_precision="date" if closes else "",
                        entry_note=note or "Listed on ThePrizeFinder (free to enter unless the page says otherwise)."))
@@ -800,7 +830,16 @@ def olive(ctx):
         out.append(rec(title=title, promoter="olive magazine", link=link, prize_desc=title, prize_value=prize_value_from_text(title),
                        entry_type="free", entry_note="Free magazine competition; closing date and terms are on the competition page.",
                        skey=link, image=image))
-    return out
+    # closing dates are stated in each page's terms text ("Closing date for entries is 23.59 on …"); an old date means a dead listing
+    dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("olive_detail", 20))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"])
+        if d:
+            if d[0] < now(): continue
+            o["closes_at"], o["closes_precision"] = d
+        keep.append(o)
+    return keep
 
 # ================================================================ RADIO
 MONTH_RX = "january|february|march|april|may|june|july|august|september|october|november|december"
@@ -841,6 +880,8 @@ def radio_global(ctx):
             c["image"] = c["image"] or img_url(a, url)
             if name not in c["stations"]: c["stations"].append(name)
     out = []
+    # station articles (heart.co.uk/win/…) carry their terms as static text; winplus.* pages are JS-only, so no dates there
+    adates = detail_closing(ctx, [k for k in arts if "winplus." not in k and "birthday-draw" not in k], ctx.cap("global_detail", 15), recheck_hours=48)
     for cid, c in comps.items():
         slug = c["slug"] or cid
         link = f"https://{c['host']}/competition/{cid}" + (f"/{c['slug']}" if c["slug"] else "")
@@ -850,9 +891,12 @@ def radio_global(ctx):
                               entry_note="Global WIN+: sign in with a free Global iD / UK mobile number. Some Win+ competitions sell optional entry bundles – read the competition page and terms before paying.",
                               skey=f"global:{cid}", image=c["image"]))
     for k, c in arts.items():
+        ad = adates.get(k)
+        if ad and ad[0] < now(): continue
         out.append(_radio_rec(title=c["title"], promoter="Global (" + ", ".join(c["stations"]) + ")", station=", ".join(c["stations"]), link=k,
                               prize_desc=c["title"], prize_value=prize_value_from_text(c["title"]),
                               entry_type="paid" if re.search(r"birthday draw", c["title"], re.I) else "",
+                              closes_at=ad[0] if ad else None, closes_precision=ad[1] if ad else "",
                               entry_note=("The Birthday Draw is a paid weekly prize draw (Global & ITV); check its rules for the free entry route. " if re.search(r"birthday draw", c["title"], re.I) else "") + "Station competition article – see page for how to enter and closing date.", skey="global:" + k, image=c["image"]))
     ctx.meta["stations_ok"] = len({s for c in list(comps.values()) + list(arts.values()) for s in c["stations"]})
     return out
@@ -883,17 +927,28 @@ def radio_bauer(ctx):
             c = comps.setdefault(cs, dict(title=title, stations=[], first=slug))
             if name not in c["stations"]: c["stations"].append(name)
     out = []
+    # closing dates: a few Bauer pages are competition T&Cs whose static text states the period ("… from Monday 29th June to
+    # Friday 3rd July 2026"); most entry pages are JS widgets with no date, which stay blank (never guessed)
+    def _slug_date(cs):
+        m = re.search(r"(\d{1,2})(?:st|nd|rd|th)-(" + MONTH_RX + ")", cs)
+        return parse_date(f"{m.group(1)} {m.group(2)} {n.year}") if m else None
+    plinks = {cs: f"https://www.hellorayo.co.uk/{c['first']}/competitions/win/{cs}" for cs, c in comps.items()}
+    undated = [plinks[cs] for cs, c in comps.items() if not _slug_date(cs) and not re.match(r"^\W*closed\b", c["title"], re.I)]
+    dates = detail_closing(ctx, undated, ctx.cap("bauer_detail", 40), recheck_hours=96)
     for cs, c in comps.items():
-        closes = None
+        closes = None; prec = "date"
         m = re.search(r"(\d{1,2})(?:st|nd|rd|th)-(" + MONTH_RX + ")", cs)
         if m:
-            closes = parse_date(f"{m.group(1)} {m.group(2)} {n.year}")
+            closes = _slug_date(cs)
             if closes and closes < n - timedelta(days=1): continue  # dated slug in the past
+        elif plinks[cs] in dates:
+            closes, prec = dates[plinks[cs]]
+            if closes < n: continue                                    # the page's own T&Cs say it has finished
         title = c["title"]
         paid = bool(re.search(r"make me a winner", title, re.I))
         out.append(_radio_rec(title=title, promoter="Bauer Media (" + ", ".join(c["stations"][:4]) + (" +%d more" % (len(c["stations"]) - 4) if len(c["stations"]) > 4 else "") + ")",
                               station=", ".join(c["stations"]), link=f"https://www.hellorayo.co.uk/{c['first']}/competitions/win/{cs}",
-                              prize_desc=title, prize_value=prize_value_from_text(title), closes_at=closes, closes_precision="date" if closes else "",
+                              prize_desc=title, prize_value=prize_value_from_text(title), closes_at=closes, closes_precision=prec if closes else "",
                               entry_type="paid" if paid else "", entry_note=("Make Me A Winner is a paid prize draw promoted on Bauer stations; free postal entry in its rules. " if paid else "") + "Radio station competition (online/on-air); open the page for the entry method and closing date.",
                               skey=f"bauer:{cs}"))
     ctx.meta["stations_ok"] = n_ok
