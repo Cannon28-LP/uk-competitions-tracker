@@ -7,12 +7,12 @@ state.json holds what must persist between runs: raw items (with first_seen -> '
 the fetch cache, site checks, source status and meta. competitions.json is what the static site loads.
 """
 import argparse, json, os, sqlite3, sys, tempfile, logging
-from . import collector
+from . import collector, sources
 from .classify import CATEGORIES
 from .util import now
-from datetime import timedelta
+from datetime import timedelta, datetime
 
-STATE_TABLES = {"raw": 5, "meta": 2, "source_status": 9, "cache": 3, "sitecheck": 3}
+STATE_TABLES = {"raw": 5, "meta": 2, "source_status": 9, "cache": 3, "sitecheck": 3, "seen": 2}
 
 def dump_state(db, path):
     st = {t: [list(r) for r in db.execute(f"SELECT * FROM {t} ORDER BY 1,2" if t in ("raw",) else f"SELECT * FROM {t} ORDER BY 1")] for t in STATE_TABLES}
@@ -24,29 +24,50 @@ def load_state(db, path):
     if not os.path.exists(path): return False
     st = json.load(open(path))
     for t, n in STATE_TABLES.items():
-        rows = st.get(t, [])
+        rows = [r for r in st.get(t, []) if len(r) == n]     # tolerate state files written by older versions
         if rows: db.executemany(f"INSERT OR REPLACE INTO {t} VALUES({','.join('?' * n)})", rows)
     db.commit()
     return True
 
+def source_state(s, run_info, now_):
+    """ok | partial | stale (failing now, but last good data <24h old: still shown, flagged) | down (failing, nothing fresh is shown)."""
+    if s["ok"]:
+        return "partial" if run_info.get("partial") else "ok"
+    if s["last_ok"]:
+        age_h = (now_ - datetime.fromisoformat(s["last_ok"])).total_seconds() / 3600
+        return "stale" if age_h <= collector.STALE_DROP_H else "down"
+    return "down"
+
 def build_site_json(db):
     items = [json.loads(r["data"]) for r in db.execute("SELECT data FROM competitions")]
     meta = {r["k"]: r["v"] for r in db.execute("SELECT * FROM meta")}
-    srcs = [dict(r) for r in db.execute("SELECT * FROM source_status ORDER BY source")]
+    registry = set(sources.REGISTRY)
+    srcs = [dict(r) for r in db.execute("SELECT * FROM source_status ORDER BY source") if r["source"] in registry]
     base = meta.get("baseline_at", "")
-    cutoff = (now() - timedelta(hours=24)).isoformat()
+    n = now()
+    cutoff = (n - timedelta(hours=24)).isoformat()
     for it in items:
-        it["is_new"] = bool(base and it["first_seen"] > base and it["first_seen"] >= cutoff)
+        # NEW = first seen in the last 24h only (and only if we genuinely saw it appear: not a long-listed comp we just got round to)
+        it["is_new"] = bool(base and it["first_seen"] > base and it["first_seen"] >= cutoff and it.get("new_ok", True))
     items.sort(key=lambda i: i["first_seen"], reverse=True)
     stats = {}
     try: stats = json.loads(meta.get("last_run_stats", "{}"))
     except Exception: pass
+    per_run = stats.get("sources", {})
     by_src = {}
     for it in items:
         for s in it["sources"]: by_src[s] = by_src.get(s, 0) + 1
+    out_srcs = []
+    for s in srcs:
+        ri = per_run.get(s["source"], {})
+        st = source_state(s, ri, n)
+        out_srcs.append(dict(s, errors=json.loads(s["errors"] or "[]"), status=st,
+                             stale_since=(s["last_ok"] if st in ("stale", "down") else None),
+                             dropped_stale=ri.get("dropped_stale", 0), shown=by_src.get(s["source"], 0)))
+    excluded = [dict(source=k, reason=v) for k, v in sources.EXCLUDED.items()]
     return dict(last_updated=meta.get("last_updated"), last_run_start=meta.get("last_run_start"), baseline_at=base,
                 categories=CATEGORIES, total=len(items), items=items, by_source=by_src,
-                sources=[dict(s, errors=json.loads(s["errors"] or "[]")) for s in srcs],
+                sources=out_srcs, excluded_sources=excluded, stale_after_hours=collector.STALE_DROP_H,
                 run_stats={k: v for k, v in stats.items() if k != "sources"})
 
 def main():
@@ -55,6 +76,7 @@ def main():
     ap.add_argument("--out", help="directory to write competitions.json into")
     ap.add_argument("--import-db")
     ap.add_argument("--only", nargs="*")
+    ap.add_argument("--cap", action="append", default=[], metavar="KEY=N", help="override a per-source fetch cap, e.g. tpf=20 (testing)")
     ap.add_argument("--min-ratio", type=float, default=0.4, help="abort (no output) if total < ratio * previous total")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -73,10 +95,10 @@ def main():
     prev_total = db.execute("SELECT count(*) FROM raw").fetchone()[0]
     print(f"state restored={restored} raw_items={prev_total}", flush=True)
     db.close()
-    stats = collector.run(a.only)
+    stats = collector.run(a.only, caps={k: int(v) for k, v in (c.split('=', 1) for c in a.cap)})
     db = collector.connect()
     site = build_site_json(db)
-    print(json.dumps(dict(stats or {}, sources={s["source"]: (s["count"], bool(s["ok"])) for s in site["sources"]}), indent=1))
+    print(json.dumps(dict(stats or {}, sources={s["source"]: dict(count=s["count"], status=s["status"], shown=s["shown"]) for s in site["sources"]}), indent=1))
     if site["total"] == 0 or (prev_total and site["total"] < a.min_ratio * prev_total):
         print(f"ABORT: suspicious result total={site['total']} (prev raw={prev_total}); not publishing", file=sys.stderr); return 2
     dump_state(db, a.state)
