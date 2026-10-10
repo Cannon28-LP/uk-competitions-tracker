@@ -308,6 +308,8 @@ def _csr_operator(ctx, slug, promoter):
         m = re.match(r"(.*?)\s*£\s?([\d.,]+)\s*entry", txt)
         if not m: continue
         title = clean(m.group(1)); title = re.sub(r"^(Win\s)?", "", title) and title
+        title = re.sub(r"^.*?Live from our tracker.*?\bdraws?\s*\.\s*", "", title)   # page-header boilerplate swallowed by the climb
+        if not title or "Live from our tracker" in title: continue
         cost = float(m.group(2).replace(",", ""))
         v = re.search(r"£\s?([\d,]+)\s*prize", txt)
         odds = re.search(r"1 in ([\d,]+)\s*max odds", txt)
