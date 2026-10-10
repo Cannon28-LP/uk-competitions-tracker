@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Prize Competition Tracker</title>
+<style>
+:root{--bg:#0f1420;--card:#171e2e;--card2:#1d2639;--tx:#e8ecf5;--mut:#93a0b8;--acc:#6ea8ff;--ok:#2fbf71;--warn:#f0b429;--bad:#ef5b5b;--bd:#2a3550}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:var(--acc)}
+header{padding:14px 16px 6px;max-width:1300px;margin:auto}
+h1{margin:0;font-size:22px}
+.sub{color:var(--mut);font-size:13px;margin-top:2px}
+main{max-width:1300px;margin:auto;padding:0 12px 60px}
+.panel{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 14px;margin:10px 0}
+details.safety summary{cursor:pointer;font-weight:600}
+details.safety ul{margin:8px 0 4px 18px;padding:0}
+.disc{color:var(--mut);font-size:12.5px;margin-top:6px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+input[type=search],select{background:var(--card2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:9px 10px;font-size:15px}
+input[type=search]{flex:1;min-width:200px}
+.chip{background:var(--card2);color:var(--tx);border:1px solid var(--bd);border-radius:999px;padding:6px 12px;font-size:13.5px;cursor:pointer;white-space:nowrap;user-select:none}
+.chip.on{background:var(--acc);color:#07111f;border-color:var(--acc);font-weight:600}
+.chip .n{opacity:.7;font-size:12px;margin-left:3px}
+.lbl{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-right:2px}
+.cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:7px}
+.card h3{margin:0;font-size:16px;line-height:1.3}
+.top{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tag{font-size:11.5px;border-radius:6px;padding:2px 7px;font-weight:700;letter-spacing:.02em}
+.t-free{background:#12361f;color:#6cf0a1}.t-paid{background:#3a2d0a;color:#ffd166}.t-unk{background:#262d40;color:var(--mut)}
+.t-new{background:#ff4d8d;color:#fff}.t-cat{background:#222c45;color:#b9c7e6;font-weight:600}.t-radio{background:#2b2150;color:#cbb8ff}
+.b-Verified{background:#12361f;color:#6cf0a1}.b-Caution{background:#3d1717;color:#ff8f8f}.b-Unverified{background:#2d3345;color:#c4cde0}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:13.5px}
+.meta div span{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.prize{font-size:13.5px;color:#c9d3e8}
+.bar{height:6px;background:#27314a;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc)}
+.note{font-size:12.5px;color:var(--mut)}
+.flags{font-size:12.5px;margin:0;padding-left:16px}
+.flags li.high{color:#ff8f8f}.flags li.medium{color:#ffb86b}.flags li.low{color:#d6c27a}.flags li.info{color:var(--mut)}
+.pos{font-size:12px;color:#8fd9ae;margin:0;padding-left:16px}
+.btn{display:inline-block;background:var(--acc);color:#07111f;text-decoration:none;font-weight:700;border-radius:8px;padding:8px 12px;text-align:center}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto}
+.small{font-size:12px;color:var(--mut)}
+.cd{display:block;font-variant-numeric:tabular-nums;font-weight:700;color:#9fd3ff;font-size:13px}
+.cd.red{color:#ff5b5b}.cd.unk{color:var(--mut);font-weight:400}
+.card.urgent{border-color:#7a2b2b}
+.empty{padding:40px;text-align:center;color:var(--mut)}
+.budget{font-size:12.5px;color:#ffd166}
+footer{max-width:1300px;margin:20px auto;padding:0 14px;color:var(--mut);font-size:12.5px}
+summary.mini{cursor:pointer;color:var(--mut);font-size:12.5px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid var(--bd);padding:4px 6px;text-align:left;vertical-align:top}
+@media(max-width:520px){.grid{grid-template-columns:1fr}h1{font-size:19px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎟️ UK Prize Competition Tracker</h1>
+  <div class="sub"><span id="upd">Loading…</span> · rebuilt automatically every hour by GitHub Actions · times shown in UK time (Europe/London)</div>
+</header>
+<main>
+<div class="panel"><strong>18+ only.</strong> This is a personal listing tool – nothing here is entered for you. Paid prize competitions/draws are generally <strong>not licensed or regulated by the Gambling Commission</strong>; play responsibly.</div>
+
+<details class="panel safety" open>
+  <summary>🛡️ Stay safe: quick tips on prize-draw scams</summary>
+  <ul>
+    <li>Never pay a fee, “postage”, “processing” or “tax” to <em>claim</em> a prize you've supposedly won. Genuine free entries never need card details.</li>
+    <li>Check the promoter is named, has Terms &amp; Conditions, a UK address/company number and a free (postal) entry route if tickets are sold.</li>
+    <li>Be wary of urgency (“act now”), surprise “you've been selected” messages, link-shorteners and odd web addresses; enter via the official site – not links in DMs.</li>
+    <li>Set a budget and stick to it (this page shows how a £30/month budget stretches on paid draws). Free help: <a href="https://www.begambleaware.org" target="_blank" rel="noopener noreferrer">BeGambleAware</a>.</li>
+  </ul>
+  <div class="row small">
+    <a href="https://www.actionfraud.police.uk/a-z-of-fraud/prize-draw-scams" target="_blank" rel="noopener noreferrer">Action Fraud: prize draw scams ↗</a> ·
+    <a href="https://www.begambleaware.org" target="_blank" rel="noopener noreferrer">BeGambleAware ↗</a> ·
+    <a href="https://www.which.co.uk/news/article/five-ways-to-spot-a-fake-freebie-on-facebook-aY9Hq2y4Fepf" target="_blank" rel="noopener noreferrer">Which?: spot a fake giveaway ↗</a> · <a href="https://www.which.co.uk/consumer-rights/advice/how-to-spot-a-social-media-scam-aMtwF3u1XKGt" target="_blank" rel="noopener noreferrer">Which?: social media scams ↗</a>
+  </div>
+  <div class="disc"><strong>Disclaimer:</strong> the Verified / Caution / Unverified badge is an automated heuristic guide (known promoters, T&amp;Cs, free-entry route, red-flag wording, domain checks). It is <strong>not a guarantee</strong> a competition is genuine or fair – always read the promoter's terms yourself.</div>
+</details>
+
+<div class="panel">
+  <div class="row"><input id="q" type="search" placeholder="Search title, promoter, station, prize…"><select id="src"><option value="">All sources</option></select></div>
+  <div class="row"><span class="lbl">Sort</span><span id="sorts"></span></div>
+  <div class="row"><span class="lbl">Filter</span><span id="filters"></span></div>
+  <div class="row"><span class="lbl">Safety</span>
+    <label class="chip" id="hideUnv"><input type="checkbox" id="hu" style="display:none"> Hide Unverified</label>
+    <label class="chip" id="hideCau"><input type="checkbox" id="hc" style="display:none"> Hide Caution</label>
+  </div>
+  <div class="lbl" style="margin-top:6px">Prize category</div>
+  <div class="cats" id="cats"></div>
+</div>
+<div class="sub" id="count"></div>
+<div class="grid" id="grid"></div>
+<div class="empty" id="empty" style="display:none">No competitions match those filters.</div>
+
+<details class="panel" style="margin-top:20px"><summary class="mini">Sources &amp; collector status</summary><div id="srcs"></div></details>
+</main>
+<footer>Data is collected politely from public pages (robots.txt respected, no logins, nothing entered). Prize values/closing times are what the source states; “~” means approximate. Always confirm details on the promoter's own page. Budget note: £30/month paid-entry budget is a personal guide only. · <a href="https://github.com/Cannon28-LP/uk-competitions-tracker" target="_blank" rel="noopener noreferrer">Source on GitHub</a></footer>
+<script>
+const BUDGET=30;
+const SORTS=[["new","New"],["high","High prize pool"],["low","Low prize pool"],["soon","Nearly finished"],["cost","Low entry cost"],["odds","Best odds"]];
+const FILTERS=[["cash","Money/cash only"],["asset","Assets (cars etc.)"],["holiday","Holidays"],["tech","Tech"],["radio","📻 Radio"],["free","Free entry only"],["paid","Paid only"],["fresh","🆕 New (24h)"]];
+const st={sort:"new",f:new Set(),cat:"",q:"",src:"",hu:false,hc:false};
+let DATA=null;
+// "New" = first seen within the last 24h AND after the very first baseline run (computed client-side so it ages correctly between hourly updates)
+function markNew(){const cut=Date.now()-864e5,base=DATA.baseline_at?new Date(DATA.baseline_at).getTime():null;
+  DATA.items.forEach(it=>{it.is_new=!!(base&&new Date(it.first_seen).getTime()>base&&new Date(it.first_seen).getTime()>=cut)})}
+const fmtD=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const fmtDate=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",weekday:"short",day:"numeric",month:"short",year:"numeric"});
+const gbp=(n,d)=>n==null?"":"£"+Number(n).toLocaleString("en-GB",{maximumFractionDigits:d??2,minimumFractionDigits:0});
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function rel(ms){const m=Math.round(ms/60000);if(m<0)return"closed";if(m<60)return m+"m left";const h=Math.round(m/60);if(h<48)return h+"h left";return Math.round(h/24)+"d left"}
+function closing(it){if(!it.closes_at)return{txt:"",unk:true};const d=new Date(it.closes_at);
+  let t;
+  if(it.closes_precision==="date")t=fmtDate.format(d)+" (end of day)";else if(it.closes_precision==="approx")t="~"+fmtDate.format(d);else t=fmtD.format(d);
+  return{txt:t,ms:d-Date.now(),unk:false}}
+function cdText(ms){let s=Math.floor(ms/1000);const d=Math.floor(s/86400);s%=86400;const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);s%=60;
+  const p=n=>String(n).padStart(2,"0");return (d>0?d+"d ":"")+p(h)+"h "+p(m)+"m "+p(s)+"s"}
+function tick(){const now=Date.now();let removed=false;
+  document.querySelectorAll(".cd[data-t]").forEach(el=>{const ms=new Date(el.dataset.t)-now;
+    if(ms<=0){const c=el.closest(".card");if(c){c.remove();removed=true}return}
+    el.textContent=(el.dataset.ap?"~":"")+cdText(ms);const red=ms<86400000;el.classList.toggle("red",red);el.closest(".card").classList.toggle("urgent",red)});
+  if(removed&&DATA){DATA.items=DATA.items.filter(it=>!it.closes_at||new Date(it.closes_at)>now);
+    const n=document.querySelectorAll("#grid .card").length;document.getElementById("count").textContent=n+" shown";}}
+setInterval(tick,1000);
+function odds(it){ if(it.tickets_sold!=null)return it.tickets_sold; return null}
+function match(it,skipCat){
+  if(!skipCat&&st.cat&&it.category!==st.cat)return false;
+  if(st.src&&!it.sources.includes(st.src))return false;
+  if(st.hu&&it.safety.badge==="Unverified")return false;
+  if(st.hc&&it.safety.badge==="Caution")return false;
+  const f=st.f;
+  if(f.has("cash")&&it.prize_type!=="cash")return false;
+  if(f.has("asset")&&it.prize_type!=="asset")return false;
+  if(f.has("holiday")&&it.prize_type!=="holiday")return false;
+  if(f.has("tech")&&it.prize_type!=="tech")return false;
+  if(f.has("radio")&&!(it.tags||[]).includes("radio"))return false;
+  if(f.has("free")&&it.entry_type!=="free")return false;
+  if(f.has("paid")&&it.entry_type!=="paid")return false;
+  if(f.has("fresh")&&!it.is_new)return false;
+  if(st.q){const h=(it.title+" "+it.promoter+" "+(it.station||"")+" "+it.prize_desc+" "+it.category+" "+it.sources.join(" ")).toLowerCase();
+    for(const w of st.q.toLowerCase().split(/\s+/).filter(Boolean))if(!h.includes(w))return false}
+  return true}
+function sorter(){const s=st.sort;const big=1e18;
+  const cl=it=>it.closes_at?new Date(it.closes_at).getTime():big;
+  return {
+   new:(a,b)=>b.first_seen.localeCompare(a.first_seen),
+   high:(a,b)=>(b.prize_value??-1)-(a.prize_value??-1),
+   low:(a,b)=>(a.prize_value??big)-(b.prize_value??big),
+   soon:(a,b)=>cl(a)-cl(b),
+   cost:(a,b)=>{const ca=(a.entry_type==="paid"&&a.entry_cost>0)?a.entry_cost:big,cb=(b.entry_type==="paid"&&b.entry_cost>0)?b.entry_cost:big;return ca-cb||cl(a)-cl(b)},
+   odds:(a,b)=>{const oa=odds(a),ob=odds(b);if(oa!=null&&ob!=null)return oa-ob;if(oa!=null)return-1;if(ob!=null)return 1;
+          const pa=a.pct_sold,pb=b.pct_sold;if(pa!=null&&pb!=null)return pa-pb;if(pa!=null)return-1;if(pb!=null)return 1;return 0}
+  }[s]}
+function card(it){
+  const c=closing(it);const sf=it.safety;
+  const et=it.entry_type==="free"?'<span class="tag t-free">FREE ENTRY</span>':it.entry_type==="paid"?'<span class="tag t-paid">PAID ENTRY</span>':'<span class="tag t-unk">ENTRY: CHECK</span>';
+  const cost=it.entry_type==="free"?"Free":it.entry_cost!=null?gbp(it.entry_cost):(it.entry_type==="paid"?"See page":"—");
+  const sold=it.tickets_sold!=null?`${it.tickets_sold.toLocaleString("en-GB")}${it.tickets_total?" / "+it.tickets_total.toLocaleString("en-GB"):""} sold`:(it.pct_sold!=null?Math.round(it.pct_sold)+"% sold":"");
+  const bar=it.pct_sold!=null?`<div class="bar"><i style="width:${Math.min(100,it.pct_sold)}%"></i></div>`:"";
+  let bud="";
+  if(it.entry_type==="paid"&&it.entry_cost>0){const n=Math.floor(BUDGET/it.entry_cost);bud=`<div class="budget">£${BUDGET}/month budget ≈ ${n.toLocaleString("en-GB")} ${n===1?"entry":"entries"} at ${gbp(it.entry_cost)}${it.entry_cost>=BUDGET?" – over budget":""}</div>`}
+  else if(it.entry_type==="paid"){bud=`<div class="budget">Paid – keep within your £${BUDGET}/month budget</div>`}
+  const flags=sf.flags.map(f=>`<li class="${f.sev}">${esc(f.text)}</li>`).join("");
+  const pos=sf.positives.map(p=>`<li>${esc(p)}</li>`).join("");
+  const radio=(it.tags||[]).includes("radio")?`<span class="tag t-radio">📻 ${esc(it.station||"Radio")}</span>`:"";
+  const srcs=it.sources.map(esc).join(", ");
+  return `<article class="card">
+   <div class="top"><span class="tag b-${sf.badge}">${sf.badge==="Verified"?"✔ ":sf.badge==="Caution"?"⚠ ":"? "}${sf.badge}</span>${et}<span class="tag t-cat">${esc(it.category)}</span>${radio}${it.is_new?'<span class="tag t-new">NEW</span>':""}</div>
+   <h3>${esc(it.title)}</h3>
+   <div class="note">${esc(it.promoter||"Promoter not stated")}</div>
+   <div class="meta">
+     <div><span>Prize value / pool</span>${it.prize_value!=null?gbp(it.prize_value,0):"—"}</div>
+     <div><span>Entry cost</span>${esc(cost)}</div>
+     <div><span>Closes (UK time)</span>${c.unk?'<b class="cd unk">Closing date unknown</b>':esc(c.txt)+`<b class="cd" data-t="${esc(it.closes_at)}" ${it.closes_precision==="approx"?'data-ap="1"':""}>${esc(cdText(Math.max(0,c.ms)))}</b>`}</div>
+     <div><span>Turnout</span>${esc(sold||"—")}</div>
+   </div>${bar}
+   ${it.prize_desc&&it.prize_desc!==it.title?`<div class="prize">${esc(it.prize_desc.slice(0,220))}</div>`:""}
+   ${bud}
+   <div class="note"><b>How to enter:</b> ${esc(it.entry_note||"See the competition page.")}</div>
+   ${flags?`<ul class="flags">${flags}</ul>`:""}
+   <details><summary class="mini">Why this badge? (score ${sf.score})</summary>${pos?`<ul class="pos">${pos}</ul>`:'<div class="small">No positive trust signals found.</div>'}<div class="small">Guide only – not a guarantee.</div></details>
+   <div class="foot"><span class="small">First seen ${esc(new Date(it.first_seen).toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))} · ${srcs}</span>
+   <a class="btn" href="${esc(it.link)}" target="_blank" rel="noopener noreferrer">Open ↗</a></div>
+  </article>`}
+function render(){
+  if(!DATA)return;
+  DATA.items=DATA.items.filter(it=>!it.closes_at||new Date(it.closes_at)>Date.now());
+  const all=DATA.items;
+  const base=all.filter(it=>match(it,true));
+  const counts={};base.forEach(it=>counts[it.category]=(counts[it.category]||0)+1);
+  document.getElementById("cats").innerHTML=`<span class="chip ${st.cat===""?"on":""}" data-c="">All<span class="n">${base.length}</span></span>`+
+    DATA.categories.map(c=>`<span class="chip ${st.cat===c?"on":""}" data-c="${esc(c)}">${esc(c)}<span class="n">${counts[c]||0}</span></span>`).join("");
+  const list=all.filter(it=>match(it,false)).sort(sorter());
+  document.getElementById("count").textContent=`${list.length} of ${all.length} live competitions`;
+  document.getElementById("grid").innerHTML=list.slice(0,600).map(card).join("");
+  document.getElementById("empty").style.display=list.length?"none":"block";tick();
+  if(list.length>600)document.getElementById("count").textContent+=" (showing first 600 – refine filters)";
+}
+function buildControls(){
+  document.getElementById("sorts").innerHTML=SORTS.map(([k,l])=>`<span class="chip ${st.sort===k?"on":""}" data-s="${k}">${l}</span>`).join(" ");
+  document.getElementById("filters").innerHTML=FILTERS.map(([k,l])=>`<span class="chip ${st.f.has(k)?"on":""}" data-f="${k}">${l}</span>`).join(" ");
+  document.getElementById("hideUnv").classList.toggle("on",st.hu);document.getElementById("hideCau").classList.toggle("on",st.hc);
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest(".chip");if(!t)return;
+  if(t.dataset.s){st.sort=t.dataset.s}
+  else if(t.dataset.f){const k=t.dataset.f;st.f.has(k)?st.f.delete(k):st.f.add(k);
+     if(k==="free")st.f.delete("paid");if(k==="paid")st.f.delete("free")}
+  else if(t.dataset.c!==undefined){st.cat=t.dataset.c}
+  else if(t.id==="hideUnv"){e.preventDefault();st.hu=!st.hu}
+  else if(t.id==="hideCau"){e.preventDefault();st.hc=!st.hc}
+  else return;
+  buildControls();render()});
+document.getElementById("q").addEventListener("input",e=>{st.q=e.target.value.trim();render()});
+document.getElementById("src").addEventListener("change",e=>{st.src=e.target.value;render()});
+async function load(){
+  let r;try{r=await fetch("competitions.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);DATA=await r.json()}catch(e){document.getElementById("upd").textContent="Could not load competitions.json ("+e.message+")";return}
+  markNew();
+  const lu=DATA.last_updated?new Date(DATA.last_updated):null;
+  document.getElementById("upd").textContent=lu?"Last updated "+new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"short"}).format(lu)+" (UK)":"No data yet";
+  const sel=document.getElementById("src"),cur=sel.value;
+  sel.innerHTML='<option value="">All sources</option>'+Object.entries(DATA.by_source).sort().map(([s,n])=>`<option value="${esc(s)}">${esc(s)} (${n})</option>`).join("");sel.value=cur;
+  document.getElementById("srcs").innerHTML=`<table><tr><th>Source</th><th>Type</th><th>Items</th><th>Status</th><th>Notes</th></tr>`+DATA.sources.map(s=>`<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.source)}</a></td><td>${esc(s.kind)}</td><td>${s.count}</td><td>${s.ok?"✅ ok":"⚠️ no data / failed"}${s.last_ok?"<br><span class='small'>last ok "+esc(new Date(s.last_ok).toLocaleString("en-GB",{timeZone:"Europe/London"}))+"</span>":""}</td><td class="small">${esc(s.note)}${s.errors&&s.errors.length?"<br>"+s.errors.map(esc).join("<br>"):""}</td></tr>`).join("")+`</table>`;
+  buildControls();render();tick();
+}
+load();setInterval(load,10*60*1000);setInterval(()=>{if(DATA){markNew()}},600000);
+</script>
+</body>
+</html>
