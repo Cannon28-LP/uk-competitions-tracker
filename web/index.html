@@ -37,6 +37,31 @@ header{padding:22px 0 10px}
 .brand{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 h1{margin:0;font-size:24px;letter-spacing:-.01em}
 .stats{display:flex;gap:8px;flex-wrap:wrap}
+.hd-r{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mdbtn{cursor:pointer;font:inherit;font-size:13px}.mdbtn:hover{border-color:var(--acc);color:var(--tx)}
+dialog.md{border:1px solid var(--line2);background:var(--surface);color:var(--tx);border-radius:16px;padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 24px);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+dialog.md::backdrop{background:rgba(0,0,0,.55)}
+.md .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 8px}.md h2{margin:0;font-size:18px}
+.md .mx{border:0;background:none;color:var(--tx2);font-size:22px;cursor:pointer;line-height:1;padding:2px 6px}
+.md .mb{padding:0 18px 16px;overflow:auto;max-height:calc(100vh - 110px)}
+.md .priv{background:var(--acc-soft);border:1px solid var(--acc);border-radius:10px;padding:8px 11px;font-size:13px;margin:4px 0 12px}
+.md .rows{display:grid;grid-template-columns:1fr;gap:8px}
+.md .row{display:grid;grid-template-columns:118px 1fr auto;gap:8px;align-items:center}
+.md .row label{font-size:13px;color:var(--tx2)}
+.md input,.md select{width:100%;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--tx);border-radius:9px;padding:7px 9px;font:inherit;font-size:14px}
+.md input:focus,.md select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.md .cp,.md .act{border:1px solid var(--line);background:var(--surface2);color:var(--tx2);border-radius:9px;padding:6px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.md .cp:hover,.md .act:hover{border-color:var(--acc);color:var(--tx)}
+.md .acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px;align-items:center}
+.md .act.danger{border-color:var(--warn);color:var(--tx)}
+.md .st{font-size:12.5px;color:var(--tx3)}
+.md hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.md h3{margin:0 0 6px;font-size:14.5px}.md p.sm,.md li{font-size:13px;color:var(--tx2);margin:4px 0}
+.md .us{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.md .us .tagok{color:#2f9e44;font-weight:600}
+.md .chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:8px 0}.md .chk input{width:auto;margin-top:2px}
+.ukct-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--surface);border:1px solid var(--acc);color:var(--tx);border-radius:10px;padding:8px 14px;font-size:13px;z-index:50;box-shadow:var(--shadow);max-width:90vw}
+@media (max-width:520px){.md .row{grid-template-columns:1fr auto}.md .row label{grid-column:1/-1;margin-bottom:-4px}}
 .pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:13px;color:var(--tx2);white-space:nowrap}
 .pill b{color:var(--tx)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
@@ -189,10 +214,11 @@ th{color:var(--tx3);font-weight:600}
 <header>
   <div class="brand">
     <h1>🎟️ UK Prize Competition Tracker</h1>
-    <div class="stats" id="stats"><span class="pill"><span class="dot"></span><span id="upd">Loading…</span></span></div>
+    <div class="hd-r"><div class="stats" id="stats"><span class="pill"><span class="dot"></span><span id="upd">Loading…</span></span></div>
+    <button type="button" class="pill mdbtn" id="mdBtn" title="Save your details in this browser to copy or auto-fill entry forms">👤 My details</button></div>
   </div>
   <details class="notice">
-    <summary><span><strong>18+ only.</strong> Nothing here is entered for you. Paid prize draws are usually <strong>not regulated by the Gambling Commission</strong>, so set a budget.</span> <span class="more">Stay-safe tips</span></summary>
+    <summary><span><strong>18+ only.</strong> We never submit entries for you. Paid prize draws are usually <strong>not regulated by the Gambling Commission</strong>, so set a budget.</span> <span class="more">Stay-safe tips</span></summary>
     <div class="tips">
       <ul>
         <li>Never pay a fee, “postage”, “processing” or “tax” to <em>claim</em> a prize. Genuine free entries never need card details.</li>
@@ -263,9 +289,30 @@ th{color:var(--tx3);font-weight:600}
 
 <footer>
   <details><summary>Sources &amp; collector status</summary><div class="tablewrap" id="srcs"></div></details>
-  <p>Collected politely from public pages every hour (robots.txt respected, no logins, nothing entered). Prize values and closing times are as the source states; “~” means approximate. Pictures are shown from the source sites. Always confirm details on the promoter's own page. Help with gambling: <a href="https://www.begambleaware.org" target="_blank" rel="noopener noreferrer">BeGambleAware</a>. · <a href="https://github.com/Cannon28-LP/uk-competitions-tracker" target="_blank" rel="noopener noreferrer">Source on GitHub</a></p>
+  <p>Collected politely from public pages every hour (robots.txt respected, no logins, nothing entered by the collector). Prize values and closing times are as the source states; “~” means approximate. Pictures are shown from the source sites. Always confirm details on the promoter's own page. Help with gambling: <a href="https://www.begambleaware.org" target="_blank" rel="noopener noreferrer">BeGambleAware</a>. · <a href="#" id="ftDetails">Autofill helper</a> · <a href="https://github.com/Cannon28-LP/uk-competitions-tracker" target="_blank" rel="noopener noreferrer">Source on GitHub</a></p>
 </footer>
 </div>
+
+<dialog class="md" id="md" aria-labelledby="mdTitle">
+  <div class="mh"><h2 id="mdTitle">👤 My details</h2><button type="button" class="mx" id="mdClose" aria-label="Close">×</button></div>
+  <div class="mb">
+    <div class="priv"><strong>Saved only in this browser; never sent to our server.</strong> Kept in your browser's local storage on this device. It is empty until you type something, and “Clear all” removes it. Don't use this on a shared computer.</div>
+    <div class="rows" id="mdRows"></div>
+    <div class="acts">
+      <button type="button" class="act" id="mdCopyAll">📋 Copy all</button>
+      <button type="button" class="act danger" id="mdClear">🗑 Clear all</button>
+      <span class="st" id="mdStatus" role="status"></span>
+    </div>
+    <hr>
+    <h3>Auto-fill on the competition page (optional)</h3>
+    <p class="sm">Websites can't be filled in by another site, so this uses a small userscript you install yourself (Tampermonkey / Violentmonkey). Your details go from this page to the userscript <em>inside your browser</em> only. It fills empty name / email / phone / address / date-of-birth fields, never ticks any box (marketing, newsletter, terms), never submits, and never touches captchas.</p>
+    <div class="us"><span id="mdUs" class="st">Checking for the userscript…</span>
+      <a class="act" id="mdInstall" href="https://raw.githubusercontent.com/Cannon28-LP/uk-competitions-tracker/main/autofill/uk-comp-autofill.user.js" target="_blank" rel="noopener noreferrer">⬇ Install userscript</a>
+      <a class="st" href="https://github.com/Cannon28-LP/uk-competitions-tracker/tree/main/autofill#readme" target="_blank" rel="noopener noreferrer">Instructions</a></div>
+    <label class="chk"><input type="checkbox" id="mdQuick" checked> <span><strong>Quick enter:</strong> when I click “Enter on site”, get the userscript ready to fill the form on the page that opens (otherwise press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> on any competition page).</span></label>
+    <p class="sm"><strong>Check before you use it:</strong> some promoters' terms ban third-party or automated entry tools. Read the terms, tick (or don't tick) marketing boxes yourself, and submit yourself.</p>
+  </div>
+</dialog>
 <button class="totop" id="totop" type="button" aria-label="Back to top">↑</button>
 
 <script>
@@ -421,7 +468,7 @@ function card(it){
   </div>
   <div class="body">
     <div class="kicker"><span class="b b-${esc(sf.badge)}" title="${esc((sf.reason ? sf.reason + " – " : "") + "automated safety guide, not a guarantee")}">${icon} ${esc(sf.badge)}</span><span class="prom" title="${esc(promoter)}">${esc(promoter)}</span></div>
-    <h3><a href="${esc(link)}" target="_blank" rel="noopener noreferrer nofollow" title="${esc(it.title)}">${esc(it.title)}</a></h3>
+    <h3><a href="${esc(link)}" data-enter target="_blank" rel="noopener noreferrer nofollow" title="${esc(it.title)}">${esc(it.title)}</a></h3>
     <div class="facts">
       <div><small>Prize</small>${prize}</div>
       <div><small>Entry</small>${pr ? `<span>${esc(pr)}</span>` : `<span class="dim">See page</span>`}</div>
@@ -429,7 +476,7 @@ function card(it){
     </div>
     ${why}${sold}${warn}
     <div class="foot">
-      <a class="btn" href="${esc(link)}" target="_blank" rel="noopener noreferrer nofollow">Enter on site ↗</a>
+      <a class="btn" href="${esc(link)}" data-enter target="_blank" rel="noopener noreferrer nofollow">Enter on site ↗</a>
       <button type="button" class="more-btn" aria-expanded="false">Details</button>
     </div>
     <div class="details"></div>
@@ -448,7 +495,7 @@ function detailsHtml(it){
   const pos = sf.positives.map(p => `<li class="pos">${esc(p)}</li>`).join("");
   const links = (it.all_links && it.all_links.length) ? it.all_links : it.sources.map(s => ({source: s, url: (it.source_links || {})[s], promoter: ""}));
   const srcs = links.slice(0, 12).map(l => { const u = safeUrl(l.url), lbl = l.source.replace(/\s*\(.*$/, "") + (l.promoter && l.promoter !== it.promoter ? " – " + l.promoter : "");
-    return u ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer nofollow">${esc(lbl)}</a>` : esc(lbl); }).join(", ") + (links.length > 12 ? ` +${links.length - 12} more` : "");
+    return u ? `<a href="${esc(u)}" data-enter target="_blank" rel="noopener noreferrer nofollow">${esc(lbl)}</a>` : esc(lbl); }).join(", ") + (links.length > 12 ? ` +${links.length - 12} more` : "");
   const claim = it.prize_value == null && it.prize_value_claimed ? `<div class="stalebar">Headline prize figure ${esc(gbp(it.prize_value_claimed))} is unverified: ${esc(it.prize_value_note || "")}</div>` : "";
   const staleNote = it.stale_since ? `<div class="stalebar">⏳ Stale: its source hasn't confirmed this listing since ${esc(fShort.format(new Date(it.stale_since)))}. It is dropped automatically after ${DATA.stale_after_hours || 24}h.</div>` : "";
   const alsoBy = (it.other_promoters || []).length ? `<div class="muted">Also listed via: ${esc(it.other_promoters.join(", "))}</div>` : "";
@@ -673,6 +720,111 @@ async function load(isRefresh){
 readUrl(); syncControls();
 load(false);
 setInterval(() => load(true), 10 * 60 * 1000);
+
+/* ---------- My details + autofill bridge ----------
+   PRIVACY: nothing here is sent anywhere. Details live in this browser's localStorage only. The optional userscript receives them
+   through window.postMessage in this same tab (never a URL, never the network). Nothing about a visitor is hardcoded or logged. */
+(function(){
+  const KEY = "ukct.details.v1", PKEY = "ukct.prefs.v1";
+  const FIELDS = [
+    ["title", "Title", "select"], ["first", "First name"], ["last", "Surname"], ["email", "Email", "email"], ["phone", "Phone", "tel"],
+    ["addr1", "Address line 1"], ["addr2", "Address line 2"], ["town", "Town / city"], ["county", "County"], ["postcode", "Postcode"], ["dob", "Date of birth", "date"]
+  ];
+  const TITLES = ["", "Mr", "Mrs", "Miss", "Ms", "Mx", "Dr", "Prof"];
+  let store = null;
+  try { store = window.localStorage; store.getItem("x"); } catch (e) { store = null; }
+  const load = k => { try { return JSON.parse(store.getItem(k) || "{}") || {}; } catch (e) { return {}; } };
+  const save = (k, v) => { try { store.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+  let details = store ? load(KEY) : {};
+  const prefs = Object.assign({quick: true}, store ? load(PKEY) : {});
+  const dlg = $("md"), rows = $("mdRows");
+  const status = t => { $("mdStatus").textContent = t; };
+  const clean = () => { const o = {}; FIELDS.forEach(([k]) => { const v = (details[k] || "").trim(); if (v) o[k] = v; }); return o; };
+  const hasAny = () => Object.keys(clean()).length > 0;
+
+  /* --- userscript bridge (same tab only) --- */
+  const usPresent = () => !!document.documentElement.getAttribute("data-ukct-autofill");
+  const post = m => window.postMessage(Object.assign({ukct: "v1", from: "page"}, m), location.origin);
+  function syncScript(){ if (usPresent()) post({type: "details", details: clean()}); }
+  function renderUs(){
+    $("mdUs").innerHTML = usPresent()
+      ? `<span class="tagok">✔ Userscript detected</span> – your details are synced to it automatically.`
+      : `Userscript not detected in this browser (install it, then reload this page).`;
+    $("mdInstall").hidden = usPresent();
+  }
+  window.addEventListener("message", e => {
+    if (e.source !== window || e.origin !== location.origin) return;
+    const d = e.data;
+    if (d && d.ukct === "v1" && d.from === "script" && d.type === "hello"){ renderUs(); syncScript(); }
+  });
+
+  /* --- form --- */
+  rows.innerHTML = FIELDS.map(([k, label, type]) => {
+    const inp = type === "select"
+      ? `<select id="md_${k}" data-k="${k}" autocomplete="off">${TITLES.map(t => `<option value="${t}">${t || "—"}</option>`).join("")}</select>`
+      : `<input id="md_${k}" data-k="${k}" type="${type === "email" || type === "tel" || type === "date" ? type : "text"}" autocomplete="off" autocapitalize="${k === "email" ? "off" : "words"}" spellcheck="false" maxlength="120">`;
+    return `<div class="row"><label for="md_${k}">${label}</label>${inp}<button type="button" class="cp" data-copy="${k}" aria-label="Copy ${label}">Copy</button></div>`;
+  }).join("");
+  function fillForm(){ FIELDS.forEach(([k]) => { $("md_" + k).value = details[k] || ""; }); $("mdQuick").checked = prefs.quick !== false; }
+  let t = null;
+  function changed(){
+    details = {}; FIELDS.forEach(([k]) => { details[k] = $("md_" + k).value; });
+    clearTimeout(t);
+    t = setTimeout(() => {
+      if (!store) { status("Your browser blocks local storage here, so nothing can be saved (copy buttons still work)."); return; }
+      save(KEY, clean()); syncScript(); status(hasAny() ? "Saved in this browser ✓" : "");
+    }, 350);
+  }
+  rows.addEventListener("input", changed); rows.addEventListener("change", changed);
+  $("mdQuick").addEventListener("change", e => { prefs.quick = e.target.checked; if (store) save(PKEY, prefs); });
+
+  async function copyText(txt){
+    try { await navigator.clipboard.writeText(txt); return true; } catch (e) { /* fall back below */ }
+    const ta = document.createElement("textarea"); ta.value = txt; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;left:-9999px;top:0";
+    dlg.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand("copy"); } catch (e) { ok = false; } ta.remove(); return ok;
+  }
+  function flash(btn, ok){ const o = btn.dataset.o || btn.textContent; btn.dataset.o = o; btn.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => { btn.textContent = o; }, 1300); }
+  rows.addEventListener("click", async e => {
+    const b = e.target.closest("[data-copy]"); if (!b) return;
+    const v = ($("md_" + b.dataset.copy).value || "").trim();
+    if (!v){ const o = b.textContent; b.textContent = "Empty"; setTimeout(() => { b.textContent = o; }, 1000); return; }
+    flash(b, await copyText(v));
+  });
+  $("mdCopyAll").addEventListener("click", async e => {
+    const lines = FIELDS.map(([k, label]) => { const v = ($("md_" + k).value || "").trim(); return v ? label + ": " + v : ""; }).filter(Boolean);
+    if (!lines.length){ status("Nothing to copy yet."); return; }
+    flash(e.currentTarget, await copyText(lines.join("\n")));
+  });
+  $("mdClear").addEventListener("click", () => {
+    if (hasAny() && !confirm("Remove all your saved details from this browser?")) return;
+    details = {}; fillForm(); if (store){ try { store.removeItem(KEY); } catch (e) { /* ignore */ } }
+    if (usPresent()) post({type: "clear"});
+    status("Cleared from this browser ✓");
+  });
+
+  function open(){ fillForm(); renderUs(); status(""); if (usPresent()) post({type: "ping"}); if (!dlg.open) dlg.showModal(); }
+  $("mdBtn").addEventListener("click", open);
+  $("ftDetails").addEventListener("click", e => { e.preventDefault(); open(); });
+  $("mdClose").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });   // click on the backdrop
+
+  /* --- quick enter: tell the userscript which site we're about to open (the link itself is unchanged and carries no data) --- */
+  let toastT = null;
+  function toast(msg){ let el = document.querySelector(".ukct-toast"); if (!el){ el = document.createElement("div"); el.className = "ukct-toast"; el.setAttribute("role", "status"); document.body.appendChild(el); } el.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 3500); }
+  function enterNotice(e){
+    const a = e.target.closest && e.target.closest("a[data-enter]");
+    if (!a || e.button > 1) return;
+    if (!usPresent() || prefs.quick === false || !hasAny()) return;
+    const u = safeUrl(a.href); if (!u) return;
+    post({type: "enter", url: u});
+    try { toast("Autofill ready for " + new URL(u).hostname.replace(/^www\./, "") + " – check the form, then submit it yourself"); } catch (e2) { /* ignore */ }
+  }
+  document.addEventListener("click", enterNotice);
+  document.addEventListener("auxclick", enterNotice);
+
+  // first sync once the userscript announces itself (it may load after us)
+  setTimeout(() => { if (usPresent()) syncScript(); }, 1200);
+})();
 </script>
 </body>
 </html>
