@@ -60,6 +60,7 @@ jobs:
       - name: Assemble site
         run: |
           cp web/index.html _site/index.html
+          mkdir -p _site/autofill && cp autofill/uk-comp-autofill.user.js _site/autofill/   # also downloadable from the Pages site
           touch _site/.nojekyll
           cp _site/competitions.json databr/competitions.json
           ls -la _site
