@@ -6,6 +6,7 @@ A public, static listing of live UK prize competitions and draws (cash, cars, ho
 
 ## Features
 - Prize pictures on every card (taken from the source listing; a category placeholder is shown when a source has none or blocks the image).
+- **My details + autofill helper** (optional): a panel to keep your name/address/DOB in *your browser only* (copy buttons, copy all, clear), plus a Tampermonkey/Violentmonkey userscript that fills the entry form on the competition page when you ask – never submits, never ticks boxes. See [`autofill/README.md`](autofill/README.md).
 - Two-level prize taxonomy: 16 main categories (+ Other), each with specific sub-categories (e.g. Cars → Supercars/Performance, Luxury, Electric/Hybrid…). Picking a main category chip reveals its sub-category chips with live counts. Classification is keyword/rule based and lives in `comptracker/classify.py` (`TAXONOMY`, ordered rules, tests in `tests/`); anything that can't be placed stays in Other.
 - Search, Free / Paid switch, prize categories with live counts, quick toggles (new today, ends within 24h, radio, has picture), safety and source filters – all client-side.
 - Price filters: a prize-value range (e.g. £1 – £1,000) and an "entry up to £…" limit (0 = free only).
