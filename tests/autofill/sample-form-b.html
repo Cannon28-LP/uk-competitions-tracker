@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Sample form B – placeholders, single DOB box, address textarea, title radios (dummy fixture)</title>
+<style>body{font:15px system-ui;margin:24px}input,textarea{padding:6px;width:320px;display:block;margin:8px 0}</style></head><body>
+<form onsubmit="window.__submitted=true;return false">
+  <div>Title: <label><input type="radio" name="salutation" value="Mr"> Mr</label> <label><input type="radio" name="salutation" value="Ms"> Ms</label> <label><input type="radio" name="salutation" value="Mrs"> Mrs.</label></div>
+  <input name="x1" placeholder="Your name">
+  <input name="x2" placeholder="Email" >
+  <input name="x3" placeholder="Telephone">
+  <textarea name="x4" placeholder="Your address"></textarea>
+  <input name="x5" placeholder="Date of birth (DD/MM/YYYY)">
+  <input name="x6" placeholder="Company name">
+  <input name="x7" placeholder="Name of your best friend">
+  <input name="x8" value="Already typed" placeholder="Surname">
+  <label><input type="checkbox" name="optin" checked> Keep me posted (pre-ticked by the site)</label>
+  <button type="submit" id="go">Enter</button>
+</form></body></html>
