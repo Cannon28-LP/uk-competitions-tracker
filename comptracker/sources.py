@@ -24,9 +24,9 @@ EXCLUDED_INTL = {
 def excluded_for(cc):
     return EXCLUDED if cc == "uk" else EXCLUDED_INTL.get(cc, {})
 
-def source(name, kind, url, note="", direct=False, country="uk"):
+def source(name, kind, url, note="", direct=False, country="uk", allow_empty=False):
     def deco(fn):
-        REGISTRY[name] = dict(fn=fn, kind=kind, url=url, note=note, direct=direct, name=name, country=country)
+        REGISTRY[name] = dict(fn=fn, kind=kind, url=url, note=note, direct=direct, name=name, country=country, allow_empty=allow_empty)
         return fn
     return deco
 
@@ -224,6 +224,8 @@ def prizefinder(ctx):
         data["v"] = 2
         m = re.search(r"Instructions\|([^|]*)\|", text); data["instr"] = m.group(1) if m else ""
         m = re.search(r"Restriction\|([^|]*)\|", text); data["restr"] = m.group(1) if m else ""
+        a = next((a for a in s.select('a[href*="link-track"]') if re.search(r"view competition", a.get_text(), re.I)), None)
+        data["track"] = urllib.parse.urljoin(TPF + "/", a["href"]) if a else ""      # the 'View Competition' redirect -> promoter page
         ctx.cache_put(l, data)
     for l, title in items.items():
         d = ctx.cache_get(l)
@@ -241,7 +243,8 @@ def prizefinder(ctx):
         out.append(rec(title=re.sub(r"^Win ", "Win ", title), promoter=site_clean, link=l, prize_desc=title, backfill=l not in fresh_links,
                        prize_value=prize_value_from_text(title), entry_type="paid" if paid else "free",
                        closes_at=closes, closes_precision="date" if closes else "",
-                       entry_note=note or "Listed on ThePrizeFinder (free to enter unless the page says otherwise)."))
+                       entry_note=note or "Listed on ThePrizeFinder (free to enter unless the page says otherwise).",
+                       redirect_hint=d.get("track") or None))
     ctx.meta["tpf_feed_items"] = len(items); ctx.meta["tpf_details_cached"] = len([1 for l in items if ctx.cache_get(l)])
     return out
 
@@ -969,3 +972,4 @@ def radio_bauer(ctx):
     return out
 
 from . import src_intl  # noqa: E402,F401  (registers the other countries' sources)
+from . import src_iow  # noqa: E402,F401  (Isle of Wight local sources)

@@ -4,7 +4,7 @@ from . import sources as S
 from . import util
 from .util import Fetcher, now, LONDON, norm, norm_promoter, prize_value_from_text, is_closed_title
 from .classify import classify, prize_type
-from . import safety, dedupe, valuecheck
+from . import safety, dedupe, valuecheck, resolve, src_iow
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.environ.get("COMP_DB") or os.path.join(BASE, "data", "comps.db")
@@ -82,6 +82,7 @@ def run(only=None, caps=None):
     t0 = now()
     caps = caps or {}
     fetcher = Fetcher()
+    rfetcher = Fetcher()      # link resolution: its own host-block bookkeeping, so 403s on detail pages never block a source's listing fetches
     first_run = db.execute("SELECT v FROM meta WHERE k='baseline_at'").fetchone() is None
     prev_run = db.execute("SELECT v FROM meta WHERE k='last_run_start'").fetchone()
     db.execute("INSERT OR REPLACE INTO meta VALUES('last_run_start',?)", (iso(t0),))
@@ -115,11 +116,15 @@ def run(only=None, caps=None):
         seenk = {}
         for it in kept: seenk[it["skey"]] = it
         kept = list(seenk.values())
+        if kept and err is None:     # direct promoter links (cached; new ones resolved within a per-run budget)
+            rctx = Ctx(name, rfetcher, db, dict(caps, source_budget_s=caps.get("resolve_budget_s", 240)))
+            rs = resolve.apply(rctx, name, kept, budget_s=caps.get("resolve_budget_s", 240), max_new=caps.get("resolve_max", 250))
+            ctx.meta.update(direct_links=rs["direct"] + rs["resolved"], unresolved=rs["unresolved"], resolve_pending=rs["pending"])
         prev_count = db.execute("SELECT count(*) FROM raw WHERE source=?", (name,)).fetchone()[0]
         if not first_run and prev_count == 0 and not db.execute("SELECT 1 FROM source_status WHERE source=? AND last_ok IS NOT NULL", (name,)).fetchone():
             for it in kept: it["backfill"] = True      # a source's very first successful run: we didn't see these appear, so no NEW flags
         n = now()
-        ok = err is None and len(kept) > 0
+        ok = err is None and (len(kept) > 0 or (spec.get("allow_empty") and not errs))
         partial = bool(errs)
         if kept and err is None:
             for it in kept:
@@ -213,9 +218,12 @@ def merge_and_store(db, fetcher, t0, summary=None):
                 links.append((0 if not safety.is_aggregator_domain(d) else 1, _prio(m["source"]), m["link"]))
         links.sort()
         item["link"] = links[0][2] if links else ""
+        item["direct"] = bool(item["link"]) and not safety.is_aggregator_domain(safety.domain(item["link"]))
+        if not item["direct"]:
+            item["unresolved_why"] = next((m.get("unresolved_why") for m in ms if m.get("unresolved_why")), "")
         item["source_links"] = {}
         for m in ms:
-            if m.get("link"): item["source_links"].setdefault(m["source"], m["link"])
+            if m.get("link"): item["source_links"].setdefault(m["source"], m.get("listing_link") or m["link"])
         # every listing we merged, so nothing is lost when duplicates collapse
         item["all_links"] = []; seen_urls = set()
         for m in ms:
@@ -254,6 +262,7 @@ def merge_and_store(db, fetcher, t0, summary=None):
         item["extra"] = extra
         item["station"] = ", ".join(dict.fromkeys(x.strip() for m in ms for x in (m.get("station") or "").split(",") if x.strip()))
         tags = sorted({t for m in ms for t in (m.get("tags") or [])})
+        if util.CUR["cc"] == "uk" and "iow" not in tags and src_iow.is_iow(item): tags = list(tags) + ["iow"]
         item["tags"] = tags
         if item["prize_value"] is None:
             item["prize_value"] = prize_value_from_text(item["title"])

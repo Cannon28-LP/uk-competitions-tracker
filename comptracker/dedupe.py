@@ -47,6 +47,8 @@ def _pconflict(a, b):
 def similar(d1, d2):
     """Return a score in (0,1] when the two raw records look like the same competition, else 0."""
     w1, n1 = d1["_tok"]; w2, n2 = d2["_tok"]
+    if d1["source"] != d2["source"] and d1.get("_dl") and d1.get("_dl") == d2.get("_dl") and inter_ok(w1, w2):
+        return 0.95                      # same promoter competition page (resolved direct link) on two listing sites
     if not w1 or not w2 or n1 != n2: return 0.0
     inter = len(w1 & w2)
     if not inter: return 0.0
@@ -70,10 +72,20 @@ def similar(d1, d2):
         except ValueError: pass
     return 1.0 if exact else max(jac, cont * 0.9)
 
+def inter_ok(w1, w2):
+    return bool(w1 & w2) or not w1 or not w2
+
+def _direct_key(d):
+    u = d.get("link") or ""
+    if not d.get("direct") or not u: return ""
+    m = re.match(r"https?://(?:www\.)?([^/?#]+)(/[^?#]*)", u)
+    if not m or len(m.group(2).strip("/")) < 4: return ""          # a home page is not one competition
+    return m.group(1).lower() + m.group(2).rstrip("/").lower()
+
 def cluster(recs):
     """recs: raw dicts (already sorted by source priority). Returns list of clusters = {"key","pn","members"}."""
     for d in recs:
-        d["_tok"] = tokens(d["title"]); d["_key"] = norm(d["title"]); d["_pn"] = norm_promoter(d.get("promoter"))
+        d["_tok"] = tokens(d["title"]); d["_key"] = norm(d["title"]); d["_pn"] = norm_promoter(d.get("promoter")); d["_dl"] = _direct_key(d)
     clusters = []; idx = {}
     for d in recs:
         cands = {}
