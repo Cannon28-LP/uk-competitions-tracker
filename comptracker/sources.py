@@ -36,6 +36,8 @@ def soup(r):
 def clean(s):
     return re.sub(r"\s+", " ", (s or "").replace("\xa0", " ")).strip()
 
+from . import qa as qa_mod
+
 def rec(**kw):
     d = dict(title="", promoter="", link="", prize_desc="", prize_value=None, entry_type="", entry_cost=None,
              entry_cost_text="", closes_at=None, closes_precision="", tickets_sold=None, tickets_total=None,
@@ -207,8 +209,9 @@ def prizefinder(ctx):
             if link and feed == "new-competitions": fresh_links.add(link)
     out = []
     # uncached pages first; then pages cached by an older parser that found no date (the date format "(ends YYYY-MM-DD)" was missed)
-    todo = [l for l in items if not ctx.cache_get(l)] + [l for l in items if ctx.cache_get(l) and not ctx.cache_get(l).get("closing") and ctx.cache_get(l).get("v", 1) < 2]
-    cap = ctx.cap("tpf", 110)
+    todo = [l for l in items if not ctx.cache_get(l)] + [l for l in items if ctx.cache_get(l) and not ctx.cache_get(l).get("closing") and ctx.cache_get(l).get("v", 1) < 2] \
+         + [l for l in items if ctx.cache_get(l) and ctx.cache_get(l).get("v", 1) < 3]     # v3 adds the 'Advice' (answer) field
+    todo = list(dict.fromkeys(todo)); cap = ctx.cap("tpf", 160)
     fetched = 0
     for l in todo:
         if fetched >= cap: break
@@ -221,7 +224,8 @@ def prizefinder(ctx):
         m = re.search(r"Website Name\|([^|]*)\|", text); data["site"] = m.group(1) if m else ""
         # "Closing Date:|2026-10-30" or "Closing Date:|Daily Entry (ends 2026-10-30)"
         m = re.search(r"Closing Date:\|[^|]*?(\d{4}-\d{2}-\d{2})", text); data["closing"] = m.group(1) if m else ""
-        data["v"] = 2
+        data["v"] = 3
+        m = re.search(r"Advice\|([^|]*)\|", text); data["advice"] = clean(m.group(1))[:200] if m else ""
         m = re.search(r"Instructions\|([^|]*)\|", text); data["instr"] = m.group(1) if m else ""
         m = re.search(r"Restriction\|([^|]*)\|", text); data["restr"] = m.group(1) if m else ""
         a = next((a for a in s.select('a[href*="link-track"]') if re.search(r"view competition", a.get_text(), re.I)), None)
@@ -239,12 +243,13 @@ def prizefinder(ctx):
         instr = d.get("instr", ""); restr = d.get("restr", "")
         paid = bool(re.search(r"purchase|buy|spend|pay\b|subscription", instr + " " + restr, re.I))
         note = "; ".join(x for x in [instr and "Entry: " + instr, restr and "Restriction: " + restr] if x)
+        qa = qa_mod.from_listing(question="", answer_text=d.get("advice", ""), instr=instr, src="ThePrizeFinder")
         # items that are only in the closing-soon / top-prizes feeds were listed before we looked: don't flag them NEW
         out.append(rec(title=re.sub(r"^Win ", "Win ", title), promoter=site_clean, link=l, prize_desc=title, backfill=l not in fresh_links,
                        prize_value=prize_value_from_text(title), entry_type="paid" if paid else "free",
                        closes_at=closes, closes_precision="date" if closes else "",
                        entry_note=note or "Listed on ThePrizeFinder (free to enter unless the page says otherwise).",
-                       redirect_hint=d.get("track") or None))
+                       redirect_hint=d.get("track") or None, qa=qa))
     ctx.meta["tpf_feed_items"] = len(items); ctx.meta["tpf_details_cached"] = len([1 for l in items if ctx.cache_get(l)])
     return out
 
@@ -562,6 +567,19 @@ def competitions_today(ctx):
             out.append(rec(title=title, link=link, prize_desc=title, prize_value=prize_value_from_text(title), entry_type="free",
                            closes_at=closes, closes_precision="date" if closes else "",
                            entry_note="Free comp listed on Competitions Today (check page: some need registration/purchase)."))
+    fetched = 0
+    for o in out:          # entry question + answer from the site's own detail page (cached; a few new pages per run)
+        c = ctx.cache_get("ctdqa:" + o["link"])
+        if c is None:
+            if fetched >= ctx.cap("ctd_qa", 40): continue
+            fetched += 1; r = ctx.get(o["link"])
+            if not r: continue
+            t = soup(r).get_text("|", strip=True)
+            mq = re.search(r"Question:\|([^|]{6,220})\|", t); ma = re.search(r"\|Answer:\s*([^|]{1,120})\|", t)
+            c = dict(q=clean(mq.group(1)) if mq else "", a=clean(ma.group(1)) if ma else "")
+            ctx.cache_put("ctdqa:" + o["link"], c)
+        if c.get("q") or c.get("a"):
+            o["qa"] = qa_mod.from_listing(question=c.get("q", ""), answer_text=c.get("a", ""), instr="", src="Competitions Today", explicit=True)
     return out
 
 # ---------------------------------------------------------------- FindCompetitions

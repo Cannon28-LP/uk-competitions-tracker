@@ -5,7 +5,7 @@ import re, time
 from datetime import datetime
 from urllib.parse import urljoin
 from .util import now
-from . import safety
+from . import safety, qa
 
 RETRY_DAYS = 14
 RUN = {}   # per-run shared time budget across sources
@@ -22,25 +22,31 @@ def og_image(html, base):
     return ""
 
 def apply(ctx, items, budget_s=120, max_new=120):
-    st = dict(had=0, cached=0, found=0, none=0, pending=0); t_end = time.time() + budget_s; new = 0
+    """One cached read of the promoter page per item: og:image (when the source had no picture) and the entry question
+    (comptracker.qa; when the source gave none). Cache 'page:<url>' (misses re-read after RETRY_DAYS)."""
+    st = dict(had=0, cached=0, found=0, none=0, pending=0, qa=0); t_end = time.time() + budget_s; new = 0
     for it in items:
-        if it.get("image"): st["had"] += 1; continue
+        need_img = not it.get("image"); need_qa = not it.get("qa")
+        if not need_img: st["had"] += 1
         link = it.get("link") or ""
-        if not it.get("direct") or not link.startswith("http") or safety.is_aggregator_domain(safety.domain(link)): continue
-        key = "ogimg:" + link; c = ctx.cache_get(key)
-        if c and (c.get("img") or (now() - datetime.fromisoformat(c["at"])).days < RETRY_DAYS):
-            if c.get("img"): it["image"] = c["img"]; st["cached"] += 1
-            continue
-        if time.time() > t_end or new >= max_new: st["pending"] += 1; continue
-        new += 1; img = ""
-        try:
-            r = ctx.get(link)
-            if r is not None and not LOGIN.search(getattr(r, "url", "") or ""):
-                img = og_image(r.text or "", getattr(r, "url", link) or link)
-        except Exception:
-            r = None
-        if r is None: st["pending"] += 1; continue
-        ctx.cache_put(key, dict(img=img, at=now().isoformat(timespec="seconds")))
-        if img: it["image"] = img; st["found"] += 1
-        else: st["none"] += 1
+        if not (need_img or need_qa) or not it.get("direct") or not link.startswith("http") or safety.is_aggregator_domain(safety.domain(link)): continue
+        key = "page:" + link; c = ctx.cache_get(key)
+        if c is None and need_img and not need_qa:
+            old = ctx.cache_get("ogimg:" + link)
+            if old and old.get("img"): it["image"] = old["img"]; st["cached"] += 1; continue
+        if c is None or (not c.get("img") and not c.get("qa") and (now() - datetime.fromisoformat(c["at"])).days >= RETRY_DAYS):
+            if time.time() > t_end or new >= max_new: st["pending"] += 1; continue
+            new += 1; img = ""; qa_d = None; r = None
+            try:
+                r = ctx.get(link)
+                if r is not None and not LOGIN.search(getattr(r, "url", "") or ""):
+                    html = r.text or ""
+                    img = og_image(html, getattr(r, "url", link) or link)
+                    qa_d = qa.from_page(html)
+            except Exception:
+                r = None
+            if r is None: st["pending"] += 1; continue
+            c = dict(img=img, qa=qa_d, at=now().isoformat(timespec="seconds")); ctx.cache_put(key, c)
+        if need_img and c.get("img"): it["image"] = c["img"]; st["found"] += 1
+        if need_qa and c.get("qa"): it["qa"] = c["qa"]; st["qa"] += 1
     return st

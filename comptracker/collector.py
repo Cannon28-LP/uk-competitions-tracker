@@ -216,6 +216,8 @@ def merge_and_store(db, fetcher, t0, summary=None):
         item["other_promoters"] = others[:8]
         item["prize_desc"] = first("prize_desc") or m0["title"]
         item["prize_value"] = first("prize_value")
+        qas = [m.get("qa") for m in ms if m.get("qa")]
+        item["qa"] = next((q for q in qas if q.get("a")), qas[0] if qas else None)   # entry question / likely answer (best guess)
         item["image"] = first("image") or ""   # prize picture, hot-linked from the source; the site shows a placeholder when absent
         # link preference: operator-direct > any non-aggregator > aggregator
         links = []
