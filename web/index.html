@@ -267,6 +267,7 @@ th{color:var(--tx3);font-weight:600}
     <button type="button" class="toggle" data-t="pics" aria-pressed="false">🖼️ Has picture</button>
     <button type="button" class="toggle" data-t="iow" aria-pressed="false" id="iowBtn" hidden title="Isle of Wight local competitions">🏝️ Isle of Wight</button>
     <button type="button" class="toggle" data-t="hants" aria-pressed="false" id="hantsBtn" hidden title="Hampshire local competitions">🌳 Hampshire</button>
+    <button type="button" class="toggle" data-t="london" aria-pressed="false" id="londonBtn" hidden title="London local competitions (boroughs, venues, attractions)">🏙️ London</button>
     </div>
     <div class="grp grp-f">
     <label class="price" id="prizeBox" title="Prize value range. Use the tick box to keep competitions whose prize value isn't stated."><span class="cs">Prize £</span><input id="pmin" type="number" inputmode="numeric" min="0" step="1" placeholder="min" aria-label="Minimum prize value in pounds">–<input id="pmax" type="number" inputmode="numeric" min="0" step="1" placeholder="max" aria-label="Maximum prize value in pounds"></label>
@@ -279,6 +280,7 @@ th{color:var(--tx3);font-weight:600}
       <option value="verified">Verified only</option>
     </select>
     <select id="src" aria-label="Source"><option value="">All sources</option></select>
+    <select id="stn" aria-label="Radio station" hidden><option value="">All stations</option></select>
     </div>
   </div>
 </div>
@@ -359,7 +361,7 @@ const CAT_META = {
   "Books/Music/Film":["📚",265],"Gifts/Bundles":["🎀",345],"Other":["⭐",230]
 };
 const $ = id => document.getElementById(id);
-const st = {q:"", entry:"", sort:"new", cat:"", sub:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true, nd:false};
+const st = {q:"", entry:"", sort:"new", cat:"", sub:"", t:new Set(), safety:"", src:"", stn:"", pmin:null, pmax:null, emax:null, unk:true, nd:false};
 const priceSet = () => st.pmin != null || st.pmax != null;
 let DATA = null, ITEMS = [], BYID = new Map(), LIST = [], shown = 0, cdEls = [];
 
@@ -370,6 +372,7 @@ const fDate = new Intl.DateTimeFormat("en-GB",{timeZone:TZ,weekday:"short",day:"
 const fShort = new Intl.DateTimeFormat("en-GB",{timeZone:TZ,day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl = u => /^https?:\/\//i.test(u || "") ? u : "";
+const imgUrl = u => /^shots\/[a-z0-9]+\.(webp|jpg)$/.test(u || "") ? u : safeUrl(u);   // own screenshot thumbnails (same site)
 const num = n => Number(n).toLocaleString("en-GB");
 const CUR = CM.sym;
 function gbp(n){   // money in the visitor's country currency (name kept from the UK-only version)
@@ -412,10 +415,12 @@ function prep(){
     return Object.assign(it, {
       _fs: fs, _cl: cl,
       _base: base,
-      _img: safeUrl(it.image),
+      _img: imgUrl(it.image),
       _radio: (it.tags || []).includes("radio"),
       _iow: CC === "uk" && (it.tags || []).includes("iow"),
       _hants: CC === "uk" && (it.tags || []).includes("hampshire"),
+      _london: CC === "uk" && (it.tags || []).includes("london"),
+      _stns: (it.station || "").split(/\s*,\s*/).filter(Boolean),
       _direct: it.direct !== false,      // older data files have no flag: treat as direct
       _hay: [it.title, it.promoter, it.station, it.prize_desc, it.category, it.subcategory, it.sources.join(" ")].join(" ").toLowerCase()
     });
@@ -449,6 +454,8 @@ function match(it, skip){
   if (st.t.has("radio") && !it._radio) return false;
   if (st.t.has("iow") && !it._iow) return false;
   if (st.t.has("hants") && !it._hants) return false;
+  if (st.t.has("london") && !it._london) return false;
+  if (st.stn && !it._stns.includes(st.stn)) return false;
   if (!st.nd && !it._direct) return false;
   if (st.t.has("pics") && !it._img) return false;
   if (st.t.has("ending") && !(it._cl && it._cl - Date.now() < 864e5)) return false;
@@ -505,7 +512,7 @@ function card(it){
   <div class="media">
     <div class="ph" style="--h:${hue}"><span>${emoji}</span></div>
     ${it._img ? `<img src="${esc(it._img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}
-    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}${it._iow ? `<span class="tag">🏝️ IoW</span>` : ""}${it._hants ? `<span class="tag">🌳 Hants</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
+    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}${it._iow ? `<span class="tag">🏝️ IoW</span>` : ""}${it._hants ? `<span class="tag">🌳 Hants</span>` : ""}${it._london ? `<span class="tag">🏙️ London</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
   </div>
   <div class="body">
     <div class="kicker"><span class="b b-${esc(sf.badge)}" title="${esc((sf.reason ? sf.reason + " – " : "") + "automated safety guide, not a guarantee")}">${icon} ${esc(sf.badge)}</span><span class="prom" title="${esc(promoter)}">${esc(promoter)}</span></div>
@@ -576,7 +583,7 @@ function render(keepScroll){
   $("grid").textContent = "";
   appendPage();
   $("empty").hidden = LIST.length > 0;
-  $("reset").hidden = !(st.q || st.entry || st.cat || st.sub || st.t.size || st.safety || st.src || priceSet() || st.emax != null || !st.unk || st.nd);
+  $("reset").hidden = !(st.q || st.entry || st.cat || st.sub || st.t.size || st.safety || st.src || st.stn || priceSet() || st.emax != null || !st.unk || st.nd);
   const nd = ITEMS.filter(it => !it._direct).length; $("ndN").textContent = nd ? "(" + num(nd) + ")" : ""; $("ndBox").hidden = !nd;
   syncUrl();
   if (!keepScroll){   // results changed: bring the top of the list back into view
@@ -634,6 +641,7 @@ function syncUrl(){
   if (st.t.size) p.set("t", [...st.t].join(","));
   if (st.safety) p.set("safety", st.safety);
   if (st.src) p.set("src", st.src);
+  if (st.stn) p.set("stn", st.stn);
   if (st.pmin != null) p.set("pmin", st.pmin);
   if (st.pmax != null) p.set("pmax", st.pmax);
   if (st.emax != null) p.set("emax", st.emax);
@@ -649,9 +657,10 @@ function readUrl(){
   st.sort = SORTS[p.get("sort")] ? p.get("sort") : "new";
   st.cat = p.get("cat") || "";
   st.sub = st.cat ? (p.get("sub") || "") : "";
-  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow", "hants"].includes(x)));
+  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow", "hants", "london"].includes(x)));
   st.safety = ["verified", "nocaution"].includes(p.get("safety")) ? p.get("safety") : "";
   st.src = p.get("src") || "";
+  st.stn = p.get("stn") || "";
   st.pmin = toNum(p.get("pmin")); st.pmax = toNum(p.get("pmax")); st.emax = toNum(p.get("emax"));
   st.unk = p.get("unk") !== "0";
   st.nd = p.get("nd") === "1";
@@ -682,6 +691,7 @@ $("qclear").addEventListener("click", () => { $("q").value = ""; st.q = ""; $("s
 $("sort").addEventListener("change", e => { st.sort = e.target.value; render(); });
 $("safety").addEventListener("change", e => { st.safety = e.target.value; render(); });
 $("src").addEventListener("change", e => { st.src = e.target.value; render(); });
+$("stn").addEventListener("change", e => { st.stn = e.target.value; render(); });
 let pTimer;
 ["pmin", "pmax", "emax"].forEach(id => $(id).addEventListener("input", () => {
   clearTimeout(pTimer);
@@ -702,7 +712,7 @@ $("row3").addEventListener("click", e => {
 });
 $("cats").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; st.cat = st.cat === b.dataset.c ? "" : b.dataset.c; st.sub = ""; render(); });
 $("subs").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; st.sub = st.sub === b.dataset.s ? "" : b.dataset.s; render(); });
-$("reset").addEventListener("click", () => { Object.assign(st, {q:"", entry:"", cat:"", sub:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true, nd:false}); syncControls(); render(); });
+$("reset").addEventListener("click", () => { Object.assign(st, {q:"", entry:"", cat:"", sub:"", t:new Set(), safety:"", src:"", stn:"", pmin:null, pmax:null, emax:null, unk:true, nd:false}); syncControls(); render(); });
 $("moreBtn").addEventListener("click", appendPage);
 $("grid").addEventListener("click", e => {
   const b = e.target.closest(".more-btn"); if (!b) return;
@@ -734,7 +744,13 @@ function applyCountry(){
 }
 function radioVis(){ const any = ITEMS.some(it => it._radio); $("radioBtn").hidden = !any; if (!any) st.t.delete("radio");
   const iow = ITEMS.some(it => it._iow); $("iowBtn").hidden = !iow; if (!iow) st.t.delete("iow");
-  const hs = ITEMS.some(it => it._hants); $("hantsBtn").hidden = !hs; if (!hs) st.t.delete("hants"); }
+  const hs = ITEMS.some(it => it._hants); $("hantsBtn").hidden = !hs; if (!hs) st.t.delete("hants");
+  const ld = ITEMS.some(it => it._london); $("londonBtn").hidden = !ld; if (!ld) st.t.delete("london");
+  const sc = {}; ITEMS.forEach(it => { if (it._radio) it._stns.forEach(s => { sc[s] = (sc[s] || 0) + 1; }); });
+  const names = Object.keys(sc).sort((a, b) => a.localeCompare(b));
+  $("stn").hidden = names.length < 2;
+  $("stn").innerHTML = '<option value="">All stations</option>' + names.map(n => `<option value="${esc(n)}">${esc(n)} (${sc[n]})</option>`).join("");
+  if (st.stn && !(st.stn in sc)) st.stn = ""; $("stn").value = st.stn || ""; }
 document.querySelectorAll(".cs").forEach(x => { x.textContent = x.textContent.replace("£", CUR); });
 ["pmin", "pmax", "emax"].forEach(id => { const e = $(id); e.setAttribute("aria-label", e.getAttribute("aria-label").replace("pounds", CC === "uk" ? "pounds" : CC === "au" || CC === "nz" ? "dollars" : "euros")); });
 $("ccNote").hidden = false;
