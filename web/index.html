@@ -164,6 +164,11 @@ select:focus{outline:none;border-color:var(--acc)}
 .foot{display:flex;gap:8px;align-items:center;margin-top:auto;padding-top:2px}
 .btn{flex:1;display:inline-flex;justify-content:center;align-items:center;gap:6px;background:var(--acc);color:var(--acc-tx);text-decoration:none;font-weight:700;border-radius:10px;padding:9px 12px;font-size:14px}
 .btn:hover{filter:brightness(1.08)}
+.qa{margin:8px 0 2px;font-size:13px;color:var(--tx2);border:1px dashed var(--line);border-radius:10px;padding:6px 10px}
+.qa summary{cursor:pointer;font-weight:600;color:var(--tx)}
+.qa-q{margin-top:6px;color:var(--tx)}.qa-o,.qa-h{margin-top:4px}.qa-a{margin-top:6px}.qa-v{color:var(--tx);font-weight:600}
+.qa-n{font-size:11.5px;color:var(--tx3,#888);margin-top:2px}
+.qa-copy{border:1px solid var(--line);background:none;border-radius:8px;padding:2px 8px;font-size:12px;cursor:pointer;color:var(--tx2);margin-left:4px}
 .more-btn{border:1px solid var(--line);background:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13.5px;color:var(--tx2)}
 .more-btn[aria-expanded=true]{background:var(--surface2)}
 .details{display:none;font-size:13px;color:var(--tx2);border-top:1px dashed var(--line);padding-top:10px;gap:9px;flex-direction:column}
@@ -265,6 +270,7 @@ th{color:var(--tx3);font-weight:600}
     <button type="button" class="toggle" data-t="ending" aria-pressed="false">⏳ Ends within 24h</button>
     <button type="button" class="toggle" data-t="radio" aria-pressed="false" id="radioBtn">📻 Radio</button>
     <button type="button" class="toggle" data-t="pics" aria-pressed="false">🖼️ Has picture</button>
+    <button type="button" class="toggle" data-t="qa" aria-pressed="false" id="qaBtn" hidden title="Competitions whose entry question (or answer) we found">❓ Has question</button>
     <button type="button" class="toggle" data-t="iow" aria-pressed="false" id="iowBtn" hidden title="Isle of Wight local competitions">🏝️ Isle of Wight</button>
     <button type="button" class="toggle" data-t="hants" aria-pressed="false" id="hantsBtn" hidden title="Hampshire local competitions">🌳 Hampshire</button>
     <button type="button" class="toggle" data-t="london" aria-pressed="false" id="londonBtn" hidden title="London local competitions (boroughs, venues, attractions)">🏙️ London</button>
@@ -421,6 +427,7 @@ function prep(){
       _iow: CC === "uk" && (it.tags || []).includes("iow"),
       _hants: CC === "uk" && (it.tags || []).includes("hampshire"),
       _london: CC === "uk" && (it.tags || []).includes("london"),
+      _qa: it.qa && (it.qa.q || it.qa.a || it.qa.hint) ? it.qa : null,
       _brum: CC === "uk" && (it.tags || []).includes("birmingham"),
       _stns: (it.station || "").split(/\s*,\s*/).filter(Boolean),
       _direct: it.direct !== false,      // older data files have no flag: treat as direct
@@ -458,6 +465,7 @@ function match(it, skip){
   if (st.t.has("hants") && !it._hants) return false;
   if (st.t.has("london") && !it._london) return false;
   if (st.t.has("brum") && !it._brum) return false;
+  if (st.t.has("qa") && !it._qa) return false;
   if (st.stn && !it._stns.includes(st.stn)) return false;
   if (!st.nd && !it._direct) return false;
   if (st.t.has("pics") && !it._img) return false;
@@ -489,6 +497,14 @@ const SORTS = {
 };
 
 /* ---------- card ---------- */
+function qaLine(it){
+  const q = it._qa; if (!q) return "";
+  const opts = (q.opts || []).length ? `<div class="qa-o">Options: ${q.opts.map(esc).join(" · ")}</div>` : "";
+  const ans = q.a ? `<div class="qa-a"><b>Likely answer:</b> <span class="qa-v">${esc(q.a)}</span> <button type="button" class="qa-copy" data-ans="${esc(q.a)}">Copy</button>
+      <div class="qa-n">Best guess, check before entering${q.method ? " · " + esc(q.method) : ""}</div></div>` : "";
+  const hint = q.hint ? `<div class="qa-h"><b>Answer hint:</b> ${esc(q.hint)}</div>` : "";
+  return `<details class="qa"><summary>❓ Q&amp;A${q.a ? "" : q.q ? " (question only)" : ""}</summary>${q.q ? `<div class="qa-q">${esc(q.q)}</div>` : ""}${opts}${ans}${hint}</details>`;
+}
 function card(it){
   const [emoji, hue] = CAT_META[it.category] || CAT_META.Other;
   const sf = it.safety, link = safeUrl(it.link) || "#";
@@ -525,7 +541,7 @@ function card(it){
       <div><small>Entry</small>${pr ? `<span>${esc(pr)}</span>` : `<span class="dim">See page</span>`}</div>
       <div><small>Closes in</small>${closes}</div>
     </div>
-    ${why}${sold}${warn}
+    ${why}${sold}${warn}${qaLine(it)}
     <div class="foot">
       ${it._direct ? `<a class="btn" href="${esc(link)}" data-enter target="_blank" rel="noopener noreferrer nofollow">Enter on site ↗</a>`
         : `<a class="btn btn-via" href="${esc(link)}" data-enter target="_blank" rel="noopener noreferrer nofollow" title="${esc("No direct promoter link found" + (it.unresolved_why ? ": " + it.unresolved_why : ""))}">Enter via listing site ↗</a>`}
@@ -660,7 +676,7 @@ function readUrl(){
   st.sort = SORTS[p.get("sort")] ? p.get("sort") : "new";
   st.cat = p.get("cat") || "";
   st.sub = st.cat ? (p.get("sub") || "") : "";
-  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow", "hants", "london", "brum"].includes(x)));
+  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow", "hants", "london", "brum", "qa"].includes(x)));
   st.safety = ["verified", "nocaution"].includes(p.get("safety")) ? p.get("safety") : "";
   st.src = p.get("src") || "";
   st.stn = p.get("stn") || "";
@@ -731,6 +747,11 @@ if ("IntersectionObserver" in window){
   new IntersectionObserver(es => { if (es[0].isIntersecting && DATA && shown < LIST.length) appendPage(); }, {rootMargin: "1200px 0px"}).observe($("sentinel"));
 }
 window.addEventListener("scroll", () => $("totop").classList.toggle("show", window.scrollY > 1500), {passive: true});
+$("grid").addEventListener("click", async e => {
+  const b = e.target.closest(".qa-copy"); if (!b) return;
+  let ok = false; try { await navigator.clipboard.writeText(b.dataset.ans); ok = true; } catch (err) { ok = false; }
+  const o = b.textContent; b.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => { b.textContent = o; }, 1300);
+});
 $("totop").addEventListener("click", () => window.scrollTo({top: 0, behavior: "smooth"}));
 
 /* ---------- country texts (from this country's own data file) ---------- */
@@ -749,6 +770,7 @@ function radioVis(){ const any = ITEMS.some(it => it._radio); $("radioBtn").hidd
   const iow = ITEMS.some(it => it._iow); $("iowBtn").hidden = !iow; if (!iow) st.t.delete("iow");
   const hs = ITEMS.some(it => it._hants); $("hantsBtn").hidden = !hs; if (!hs) st.t.delete("hants");
   const ld = ITEMS.some(it => it._london); $("londonBtn").hidden = !ld; if (!ld) st.t.delete("london");
+  const hq = ITEMS.some(it => it._qa); $("qaBtn").hidden = !hq; if (!hq) st.t.delete("qa");
   const bm = ITEMS.some(it => it._brum); $("brumBtn").hidden = !bm; if (!bm) st.t.delete("brum");
   const sc = {}; ITEMS.forEach(it => { if (it._radio) it._stns.forEach(s => { sc[s] = (sc[s] || 0) + 1; }); });
   const names = Object.keys(sc).sort((a, b) => a.localeCompare(b));
