@@ -277,13 +277,9 @@ def is_london(it):
     t = " ".join([it.get("title") or "", it.get("prize_desc") or "", it.get("promoter") or ""])
     return bool(LONDON_RX.search(t)) and not re.search(r"\bnew london\b|\blondon,? (ontario|ohio|kentucky)\b", t, re.I)
 
-@source("London local (MyLondon, Secret London)", "publisher", "https://www.mylondon.news/all-about/competitions",
-        "London giveaways from MyLondon (Reach) and Secret London; only articles with a future closing date in the text, or published in the "
-        "last 45 days. Time Out London (no current competitions), Evening Standard (no competitions page) and Londonist (no tag page) list none.",
-        direct=True, allow_empty=True)
-def london_local(ctx):
-    out = []; recent = set()
-    r = ctx.get("https://www.mylondon.news/all-about/competitions")
+def _reach(ctx, base, paper, tag, out, recent, metakey):
+    """Reach plc local paper 'competitions' topic page: only articles published in the last 45 days (date from the article)."""
+    r = ctx.get(base + "/all-about/competitions")
     if r:
         ss = soup(r); seen = {}
         for a in ss.find_all("a", href=True):
@@ -294,24 +290,32 @@ def london_local(ctx):
             seen[h] = int(m.group(1))
         fetched = 0; cutoff = now() - timedelta(days=45)
         for h, n in sorted(seen.items(), key=lambda x: -x[1]):
-            link = h if h.startswith("http") else "https://www.mylondon.news" + h
+            link = h if h.startswith("http") else base + h
             c = ctx.cache_get("mlpub:" + link)
             if c is None:
-                if fetched >= ctx.cap("mylondon_detail", 20): continue
+                if fetched >= ctx.cap(metakey + "_detail", 20): continue
                 fetched += 1; rr = ctx.get(link)
                 if not rr: continue
                 html = rr.text or ""
                 tm = re.search(r"<title>(.*?)</title>", html, re.S); pm = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html)
-                c = dict(t=clean(re.sub(r"\s*-\s*My London\s*$", "", tm.group(1))) if tm else "", pub=pm.group(1) if pm else "")
+                c = dict(t=clean(re.sub(r"\s+-\s+[^-]{2,40}$", "", tm.group(1))) if tm else "", pub=pm.group(1) if pm else "")
                 ctx.cache_put("mlpub:" + link, c)
             try: pub = datetime.fromisoformat(c["pub"].replace("Z", "+00:00"))
             except Exception: continue
             if pub < cutoff: continue                       # older articles: the giveaway has almost always closed
             t = c.get("t") or ("Win " + re.sub(r"^win-", "", re.sub(r"-\d{8}$", "", link.rsplit("/", 1)[-1])).replace("-", " "))
             recent.add(link)
-            out.append(rec(title=t, promoter="MyLondon (Reach plc)", link=link, prize_desc=t, entry_type="free",
-                           entry_note="MyLondon giveaway; closing date and terms in the article.", skey=link, tags=["london"]))
-        ctx.meta["mylondon"] = len(seen)
+            out.append(rec(title=t, promoter=paper + " (Reach plc)", link=link, prize_desc=t, entry_type="free",
+                           entry_note=paper + " giveaway; closing date and terms in the article.", skey=link, tags=[tag]))
+        ctx.meta[metakey] = len(seen)
+
+@source("London local (MyLondon, Secret London)", "publisher", "https://www.mylondon.news/all-about/competitions",
+        "London giveaways from MyLondon (Reach) and Secret London; only articles with a future closing date in the text, or published in the "
+        "last 45 days. Time Out London (no current competitions), Evening Standard (no competitions page) and Londonist (no tag page) list none.",
+        direct=True, allow_empty=True)
+def london_local(ctx):
+    out = []; recent = set()
+    _reach(ctx, "https://www.mylondon.news", "MyLondon", "london", out, recent, "mylondon")
     after = (now() - timedelta(days=45)).strftime("%Y-%m-%dT00:00:00")
     r = ctx.get(f"https://secretldn.com/wp-json/wp/v2/posts?search=win&after={after}&per_page=50&_fields=link,title,date")
     if r:
@@ -333,6 +337,37 @@ def london_local(ctx):
             if d[0] < now(): continue
             o["closes_at"], o["closes_precision"] = d
         elif o["link"] not in recent: continue       # old article with no stated closing date: most likely finished
+        o["prize_value"] = o["prize_value"] or prize_value_from_text(o["title"])
+        keep.append(o)
+    return keep
+
+# ================================================================ Birmingham / West Midlands
+BRUM_RX = re.compile(r"\b(birmingham|brum|west midlands|solihull|sutton coldfield|wolverhampton|coventry|dudley|walsall|west bromwich|"
+    r"sandwell|smethwick|halesowen|stourbridge|bournville|edgbaston|digbeth|selly oak|erdington|kings heath|moseley|harborne|"
+    r"\bnec\b|utilita arena|bp pulse live|resorts world (?:arena|birmingham)|birmingham hippodrome|symphony hall|town hall birmingham|b:music|"
+    r"cadbury world|drayton manor|sea ?life birmingham|national sea life centre|bullring|grand central birmingham|mailbox birmingham|"
+    r"villa park|st andrews|the hawthorns|molineux|coventry building society arena|black country living museum|thinktank|"
+    r"legoland discovery centre birmingham|alexandra theatre|the alexandra birmingham|o2 academy birmingham|warwick castle)\b", re.I)
+
+def is_brum(it):
+    t = " ".join([it.get("title") or "", it.get("prize_desc") or "", it.get("promoter") or "", it.get("station") or ""])
+    return bool(BRUM_RX.search(t)) and not re.search(r"\bbirmingham,? (alabama|al|michigan)\b", t, re.I)
+
+@source("Birmingham & West Midlands local (Birmingham Live, Coventry Live)", "publisher", "https://www.birminghammail.co.uk/all-about/competitions",
+        "Reach's Birmingham Mail / Birmingham Live and Coventry Telegraph / Coventry Live giveaways; only articles from the last 45 days "
+        "(or with a future closing date). Express & Star and Birmingham World have no competitions page; Hits Radio Birmingham and "
+        "Greatest Hits Radio West Midlands come from the Bauer regional source.", direct=True, allow_empty=True)
+def brum_local(ctx):
+    out = []; recent = set()
+    _reach(ctx, "https://www.birminghammail.co.uk", "Birmingham Live", "birmingham", out, recent, "birmingham_live")
+    _reach(ctx, "https://www.coventrytelegraph.net", "Coventry Live", "birmingham", out, recent, "coventry_live")
+    dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("brum_detail", 25))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"])
+        if d:
+            if d[0] < now(): continue
+            o["closes_at"], o["closes_precision"] = d
         o["prize_value"] = o["prize_value"] or prize_value_from_text(o["title"])
         keep.append(o)
     return keep
