@@ -43,7 +43,7 @@ def main():
     ip = os.path.join(sd, "index.json")
     idx = json.load(open(ip)) if os.path.exists(ip) else {}
     files = {}
-    for fn in sorted(os.listdir(os.path.join(a.data, "data"))):
+    for fn in sorted(os.listdir(os.path.join(a.data, "data")), key=lambda x: (x != "uk.json", x)):   # UK first
         if fn.endswith(".json"): files[fn] = json.load(open(os.path.join(a.data, "data", fn)))
     want = {}      # key -> link, items without a picture
     before = after = total = 0
