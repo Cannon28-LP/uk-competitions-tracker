@@ -256,7 +256,7 @@ def _csr_cards(ctx, path, free_page=False):
     if not r: return []
     s = soup(r); out = []
     for art in s.select("article"):
-        t = art.select_one('[class$="cardTitle"]')
+        t = art.select_one('[class*="__cardTitle"]')     # class list may carry extra modifiers (e.g. '__cardTitle __titleLink')
         if not t: continue
         title = clean(t.get("title") or t.get_text())
         op = art.select_one('span[class$="__cardOp"]')
@@ -283,12 +283,16 @@ def _csr_cards(ctx, path, free_page=False):
         cat = art.select_one('[class$="cardCat"]'); cat = clean(cat.get_text()) if cat else ""
         isfree = price.upper() == "FREE"
         cost = 0.0 if isfree else money(price)
-        closes = approx_from_left(left)
+        closes = approx_from_left(left); cprec = "approx" if closes else ""
+        te = tm.select_one("time[datetime]") if tm else None
+        if te:
+            try: closes = datetime.fromisoformat(te["datetime"].replace("Z", "+00:00")).astimezone(LONDON); cprec = "exact"
+            except Exception: pass
         note = "Free draw (no ticket needed)." if isfree else "Paid ticket draw; most operators also offer a free postal entry route (check their terms)."
         note += f" Showroom category: {cat}." if cat else ""
         out.append(rec(title=title, promoter=op, link=link, prize_desc=title, prize_value=money(cash) if cash and cash.lower() != "none" else None,
                        entry_type="free" if isfree else ("paid" if cost is not None else ""), entry_cost=cost,
-                       entry_cost_text="FREE" if isfree else price, closes_at=closes, closes_precision="approx" if closes else "",
+                       entry_cost_text="FREE" if isfree else price, closes_at=closes, closes_precision=cprec,
                        tickets_sold=ts, tickets_total=tt, pct_sold=pctv, entry_note=note, skey=link or title,
                        image=img_url(art, CSR + "/")))
     return out
