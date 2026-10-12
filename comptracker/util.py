@@ -164,6 +164,41 @@ def norm_promoter(s):
     s = re.sub(r"\b(competitions?|comps?|giveaways?|the|limited|ltd|prizes?|draws?)\b", " ", s)
     return re.sub(r"[^a-z0-9]+", "", s)
 
+class Robots:
+    """robots.txt with RFC 9309 / Google semantics: the group for our user-agent (else '*'), then the LONGEST matching
+    Allow/Disallow rule wins (ties -> allow); '*' and '$' wildcards. (urllib.robotparser uses first-match, which wrongly
+    lets 'Allow: /' before 'Disallow: /redir/' allow everything.)"""
+    def __init__(self, text):
+        self.groups = []; cur = None; last_ua = False
+        for line in (text or "").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if ":" not in line: continue
+            k, v = [x.strip() for x in line.split(":", 1)]; k = k.lower()
+            if k == "user-agent":
+                if not last_ua: cur = {"ua": [], "rules": []}; self.groups.append(cur)
+                cur["ua"].append(v.lower()); last_ua = True
+            elif k in ("allow", "disallow") and cur is not None:
+                last_ua = False
+                if v: cur["rules"].append((k == "allow", v))
+            else:
+                last_ua = False
+    @staticmethod
+    def _rx(pat):
+        end = pat.endswith("$"); pat = pat[:-1] if end else pat
+        return re.compile(re.escape(pat).replace(r"\*", ".*") + ("$" if end else ""))
+    def allowed(self, ua, url):
+        p = urllib.parse.urlsplit(url); path = (p.path or "/") + ("?" + p.query if p.query else "")
+        token = "personalcomptracker"
+        rules = [r for g in self.groups if any(u != "*" and u in token for u in g["ua"]) for r in g["rules"]]
+        if not any(any(u != "*" and u in token for u in g["ua"]) for g in self.groups):
+            rules = [r for g in self.groups if "*" in g["ua"] for r in g["rules"]]
+        best = (-1, True)
+        for allow, pat in rules:
+            if self._rx(pat).match(path):
+                L = len(pat)
+                if L > best[0] or (L == best[0] and allow): best = (L, allow)
+        return best[1]
+
 class Fetcher:
     """Polite fetcher: robots.txt check, per-host delay, identifiable UA, no cookies persisted across logins.
 
@@ -189,23 +224,38 @@ class Fetcher:
         p = urllib.parse.urlsplit(url)
         host = f"{p.scheme}://{p.netloc}"
         if host not in self.robots:
-            rp = urllib.robotparser.RobotFileParser()
+            rp = Robots("")
             try:
                 r = self.s.get(host + "/robots.txt", timeout=(10, 15))
                 if r.status_code == 200 and "html" not in r.headers.get("content-type", "") and "<html" not in r.text[:300].lower():
-                    rp.parse(r.text.splitlines())
-                else:
-                    rp.parse([])
+                    rp = Robots(r.text)
             except Exception:
-                rp.parse([])
+                pass
             self.robots[host] = rp
         return self.robots[host]
 
     def allowed(self, url):
         try:
-            return self._robots(url).can_fetch(UA, url) and self._robots(url).can_fetch("*", url)
+            return self._robots(url).allowed(UA, url)
         except Exception:
             return True
+
+    def peek(self, url, timeout=(10, 20)):
+        """One polite, robots-checked GET that does NOT follow redirects (to read a listing site's redirect target without
+        fetching the promoter's page). Returns (status, location, response) or None."""
+        if not self.allowed(url):
+            self.errors.append(f"robots-disallowed {url}"); return None
+        host = urllib.parse.urlsplit(url).netloc
+        if self.blocked.get(host, 0) >= self.host_block_after: return None
+        wait = self.delay - (time.time() - self.last.get(host, 0))
+        if wait > 0: time.sleep(wait)
+        try:
+            r = self.s.get(url, timeout=timeout, allow_redirects=False)
+        except requests.RequestException as e:
+            self.last[host] = time.time(); self.errors.append(f"{type(e).__name__} {url}"); return None
+        self.last[host] = time.time(); self.count += 1
+        if r.status_code == 403: self.blocked[host] = self.blocked.get(host, 0) + 1
+        return r.status_code, r.headers.get("location"), r
 
     def _sleep_backoff(self, attempt, retry_after=None):
         d = min(self.max_backoff, self.backoff * (2 ** (attempt - 1))) * random.uniform(0.8, 1.25)
