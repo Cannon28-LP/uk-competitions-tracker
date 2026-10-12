@@ -5,6 +5,7 @@ Rules are tried on the title, then on the description, then the 'fallback' rules
 style titles) on the title, then a weak hint from the source's own category label; anything left is ("Other", "Unclear").
 """
 import re
+from . import util as _util, gloss as _gloss
 
 def _r(p): return re.compile(p, re.I)
 
@@ -95,6 +96,7 @@ UKH = r"\b(uk|britain|british|england|english|scotland|scottish|wales|welsh|nort
 HOLW = r"\b(holidays?|breaks?|getaways?|stays?|hotels?|resorts?|flights?|trips?|travel|villas?|safari|escape|staycation|weekend away|all[- ]inclusive|glamping|retreat|adventure holiday|honeymoon|bed (?:&|and) breakfast|b&b|city break|ski|(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|twelve|fourteen)[- ]?nights?|weeks?\s+(?:in|at|away|on)|overnight|nights? (?:stay|in|at|away))\b"
 HOLNEG = r"\b(hotel chocolat|escape room|great snake escape|travel (?:set|bag|pillow|accessories)|family ticket|take a break|gift set|(?<!and )(?<!& )break ?fast|tea break|late night|movie night|night in|coffee break|lunch break|stay (?:warm|cool|safe|hydrated|healthy|connected|in touch)|break ?through|break ?dance|jailbreak|outbreak|prison break|trip ?wire|stay ?at ?home|stays? tuned)\b|\bwin (?:a )?(?:copy|book)|\b(book|novel|dvd|blu-?ray|album|voucher code|instant wins?)\b"
 def _hol_sub(t):
+    if _util.CUR["cc"] != "uk" and _gloss.domestic(t): return "UK breaks"    # = 'domestic'; relabelled per country in the site JSON
     if re.search(LONGH, t, re.I) and not re.search(r"\b(new york (?:times|yankees)|florida water|california roll)\b", t, re.I): return "Long-haul"
     if re.search(EURO, t, re.I): return "Europe"
     if re.search(UKH, t, re.I): return "UK breaks"
@@ -235,7 +237,9 @@ HINTS = {"Vehicles": ("Cars", "Everyday cars"), "Bikes": ("Motorbikes", "Motorbi
          "Trade Equipment": ("Home/Property", "DIY/Tools"), "Instant Wins": ("Money/Cash", "Instant wins/Prize pools"), "Cash": ("Money/Cash", "Cash lump sum")}
 
 def classify(title, desc="", hint=""):
-    """-> (category, subcategory)"""
+    """-> (category, subcategory). Non-UK listings are first glossed into English keywords (gloss.py)."""
+    if _util.CUR["cc"] != "uk":
+        title, desc = _gloss.english(title), _gloss.english(desc)
     title = (title or "").replace("’", "'").replace("‑", "-")
     r = _match(title)
     if r: return r

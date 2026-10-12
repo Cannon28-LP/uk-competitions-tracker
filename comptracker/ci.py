@@ -7,7 +7,7 @@ state.json holds what must persist between runs: raw items (with first_seen -> '
 the fetch cache, site checks, source status and meta. competitions.json is what the static site loads.
 """
 import argparse, json, os, sqlite3, sys, tempfile, logging
-from . import collector, sources
+from . import collector, sources, util, countries
 from .classify import CATEGORIES, TAXONOMY
 from .util import now
 from datetime import timedelta, datetime
@@ -41,7 +41,8 @@ def source_state(s, run_info, now_):
 def build_site_json(db):
     items = [json.loads(r["data"]) for r in db.execute("SELECT data FROM competitions")]
     meta = {r["k"]: r["v"] for r in db.execute("SELECT * FROM meta")}
-    registry = set(sources.REGISTRY)
+    cc = util.CUR["cc"]
+    registry = {k for k, v in sources.REGISTRY.items() if v.get("country", "uk") == cc}
     srcs = [dict(r) for r in db.execute("SELECT * FROM source_status ORDER BY source") if r["source"] in registry]
     base = meta.get("baseline_at", "")
     n = now()
@@ -64,21 +65,29 @@ def build_site_json(db):
         out_srcs.append(dict(s, errors=json.loads(s["errors"] or "[]"), status=st,
                              stale_since=(s["last_ok"] if st in ("stale", "down") else None),
                              dropped_stale=ri.get("dropped_stale", 0), shown=by_src.get(s["source"], 0)))
-    excluded = [dict(source=k, reason=v) for k, v in sources.EXCLUDED.items()]
+    excluded = [dict(source=k, reason=v) for k, v in sources.excluded_for(cc).items()]
+    tax = TAXONOMY
+    if cc != "uk":      # 'UK breaks' means domestic breaks: label it for this country
+        local = "Breaks in " + countries.COUNTRIES[cc]["name"]
+        tax = {k: [local if x == "UK breaks" else x for x in v] for k, v in TAXONOMY.items()}
+        for it in items:
+            if it.get("subcategory") == "UK breaks": it["subcategory"] = local
     return dict(last_updated=meta.get("last_updated"), last_run_start=meta.get("last_run_start"), baseline_at=base,
-                categories=CATEGORIES, subcategories=TAXONOMY, total=len(items), items=items, by_source=by_src,
+                country=countries.info(cc), categories=CATEGORIES, subcategories=tax, total=len(items), items=items, by_source=by_src,
                 sources=out_srcs, excluded_sources=excluded, stale_after_hours=collector.STALE_DROP_H,
                 run_stats={k: v for k, v in stats.items() if k != "sources"})
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--state", required=True)
+    ap.add_argument("--country", default="uk", choices=countries.CODES)
     ap.add_argument("--out", help="directory to write competitions.json into")
     ap.add_argument("--import-db")
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--cap", action="append", default=[], metavar="KEY=N", help="override a per-source fetch cap, e.g. tpf=20 (testing)")
     ap.add_argument("--min-ratio", type=float, default=0.4, help="abort (no output) if total < ratio * previous total")
     a = ap.parse_args()
+    util.set_country(a.country)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     work = tempfile.mkdtemp(prefix="comp-")
     os.environ["COMP_DB"] = os.path.join(work, "comps.db")
@@ -104,8 +113,10 @@ def main():
     dump_state(db, a.state)
     if a.out:
         os.makedirs(a.out, exist_ok=True)
-        with open(os.path.join(a.out, "competitions.json"), "w") as f: json.dump(site, f, ensure_ascii=False, separators=(",", ":"))
-    print("competitions:", site["total"])
+        names = [f"{a.country}.json"] + (["competitions.json"] if a.country == "uk" else [])   # competitions.json: UK, for old links
+        for nm in names:
+            with open(os.path.join(a.out, nm), "w") as f: json.dump(site, f, ensure_ascii=False, separators=(",", ":"))
+    print(a.country, "competitions:", site["total"])
     return 0
 
 if __name__ == "__main__":

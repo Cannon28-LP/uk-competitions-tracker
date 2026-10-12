@@ -1,6 +1,7 @@
 import os, sys, json, sqlite3, time, re, traceback, logging, fcntl
 from datetime import datetime, timedelta
 from . import sources as S
+from . import util
 from .util import Fetcher, now, LONDON, norm, norm_promoter, prize_value_from_text, is_closed_title
 from .classify import classify, prize_type
 from . import safety, dedupe, valuecheck
@@ -89,6 +90,7 @@ def run(only=None, caps=None):
     summary = {}
     for name, spec in S.REGISTRY.items():
         if only and name not in only: continue
+        if spec.get("country", "uk") != util.CUR["cc"]: continue
         ctx = Ctx(name, fetcher, db, caps)
         t1 = time.time()
         items = []; err = None
@@ -331,13 +333,13 @@ def check_sites(db, fetcher, items, cap=40):
             terms = ""
             for a in s.select("a[href]"):
                 t = (a.get_text(" ", strip=True) + " " + a["href"]).lower()
-                if re.search(r"terms|t&c|t&amp;c|conditions|rules", t) and not terms:
+                if re.search(r"terms|t&c|t&amp;c|conditions|rules|teilnahmebedingungen|agb|règlement|reglement|voorwaarden|regolamento", t) and not terms:
                     terms = a["href"] if a["href"].startswith("http") else base + "/" + a["href"].lstrip("/")
             data["terms"] = terms
             txt = s.get_text(" ", strip=True)
             m = re.search(r"(?:company|registration|reg\.?)\s*(?:no\.?|number|#)?\s*:?\s*(?:SC|NI)?(\d{6,8})", txt, re.I)
             data["company"] = m.group(1) if m else ""
-            data["free_route"] = bool(re.search(r"free (?:postal )?entry|postal entry|no purchase necessary|free route", txt + " " + r.text[:200000], re.I))
+            data["free_route"] = bool(re.search(r"free (?:postal )?entry|postal entry|no purchase necessary|free route|kostenlose teilnahme|ohne kauf|sans obligation d'achat|gratis deelname|senza obbligo di acquisto", txt + " " + r.text[:200000], re.I))
         db.execute("INSERT OR REPLACE INTO sitecheck VALUES(?,?,?)", (d, json.dumps(data), iso(now())))
         res[d] = data
     db.commit()

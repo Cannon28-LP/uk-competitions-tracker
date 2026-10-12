@@ -1,8 +1,14 @@
-"""Heuristic safety/trust layer. A guide, NOT a guarantee."""
+"""Heuristic safety/trust layer. A guide, NOT a guarantee. Country-aware via util.CUR (brands, directories, regulator notes)."""
 import re, urllib.parse
+from . import util
+from .countries import PAGE as _CPAGE
 
 AGGREGATOR_DOMAINS = ("loquax.co.uk", "theprizefinder.com", "competitionshowroom.com", "moneysavingexpert.com", "competitions-time.co.uk",
-                      "competitionstoday.co.uk", "findcompetitions.com", "latestdeals.co.uk")
+                      "competitionstoday.co.uk", "findcompetitions.com", "latestdeals.co.uk",
+                      # other countries' directories (their own listing pages are not the promoter)
+                      "12gewinn.de", "gewinnhai.de", "jeu-concours.biz", "concours-du-net.com", "concours.fr", "prijsvragen.nl", "prijzenzolder.nl",
+                      "winacties.nl", "competitions.ie", "fearlesscompetitions.com", "dimmicosacerchi.it", "salvadenari.com", "ozbargain.com.au",
+                      "cheapies.nz", "competitions.com.au", "competitions.co.nz")
 ESTABLISHED = ["botb", "best of the best", "omaze", "dream car giveaways", "dreamcargiveaways", "7 days performance", "7days performance", "7daysperformance",
                "elite competitions", "revcomps", "rev comps", "click competitions", "clickcompetitions", "raffall", "mckinney", "hittin it big"]
 # Only the first few are 'long-running, large'; rest = well-known in the comping community (still check T&Cs!)
@@ -23,6 +29,43 @@ SCAM_WORDS = re.compile(r"(congratulations|you(?:'|’)?ve been selected|you hav
                         r"free (?:iphone|ipad|ps5|macbook|samsung)s? (?:for all|to everyone))", re.I)
 CARD_FREE = re.compile(r"(card details|credit card|debit card|free trial|subscription|£\d+(?:\.\d+)? (?:p&p|postage|delivery|shipping))", re.I)
 SPEND_TO_QUALIFY = re.compile(r"(must have spent|spend £\s?\d|spend \d|spent £\s?\d|deposit|wager|new customers only)", re.I)
+
+# Editorially curated / community-moderated directories in the other countries (they state that they check listings)
+DIRECTORIES_INTL = ("12Gewinn.de", "GewinnHai", "Jeu-concours.biz", "Concours du Net", "Concours.fr", "Prijsvragen.nl", "PrijzenZolder.nl", "WinActies.nl",
+                    "Competitions.ie", "Fearless Competitions (ROI)", "DimmiCosaCerchi (gratuiti)", "Salvadenari", "OzBargain Competitions",
+                    "Cheapies Competitions", "Competitions.com.au", "Competitions.co.nz")
+INTERNATIONAL_BRANDS = ["amazon", "apple", "samsung", "sony", "nintendo", "lego", "disney", "ikea", "dyson", "coca-cola", "pepsi", "nestle", "nestlé", "heineken",
+                        "l'oréal", "loreal", "unilever", "philips", "bosch", "lidl", "aldi", "spotify", "netflix", "red bull", "mcdonald", "burger king", "kellogg", "mars",
+                        "ferrero", "kinder", "milka", "nivea", "garnier", "playmobil", "decathlon", "zalando", "tui", "booking.com", "airbnb", "volkswagen", "bmw", "mercedes",
+                        "toyota", "hyundai", "kia", "vodafone", "carlsberg", "danone", "procter", "gillette", "oral-b", "braun", "tefal", "moulinex", "delonghi", "de'longhi"]
+LOCAL_BRANDS = {
+    "de": ["rewe", "edeka", "kaufland", "penny", "netto", "mediamarkt", "media markt", "saturn", "otto", "dm-drogerie", "dm ", "rossmann", "krombacher", "veltins",
+           "bitburger", "warsteiner", "haribo", "ritter sport", "check24", "adac", "ard", "zdf", "rtl", "prosieben", "sat.1", "bild", "hörzu", "tchibo", "miele",
+           "deutsche bahn", "lufthansa", "sparkasse", "volksbank", "aktion mensch", "telekom", "o2", "radio", "antenne", "schlager radio", "bayern 3", "swr", "ndr", "wdr", "mdr"],
+    "fr": ["carrefour", "leclerc", "auchan", "intermarché", "monoprix", "fnac", "darty", "boulanger", "tf1", "m6", "france tv", "france télévisions", "club france tv",
+           "rtl", "nrj", "europe 1", "fun radio", "nostalgie", "chérie fm", "20 minutes", "le parisien", "marie claire", "cosmopolitan", "notre temps", "femme actuelle",
+           "sncf", "air france", "leroy merlin", "castorama", "seb", "crédit agricole", "la redoute", "cdiscount", "bonduelle", "lu ", "petit marseillais"],
+    "nl": ["albert heijn", "jumbo", "bol.com", "coolblue", "hema", "kruidvat", "etos", "blokker", "rtl", "npo", "nu.nl", "telegraaf", "libelle", "margriet", "linda",
+           "postcode loterij", "staatsloterij", "vriendenloterij", "efteling", "center parcs", "douwe egberts", "action", "praxis", "gamma", "anwb", "radio 538", "qmusic", "sky radio"],
+    "ie": ["rté", "rte", "virgin media", "today fm", "fm104", "98fm", "spin 1038", "spin", "newstalk", "radio nova", "beat 102", "irish independent", "irish times",
+           "thejournal", "the journal", "dunnes", "supervalu", "tesco", "centra", "spar", "eir", "three", "bord gáis", "electric ireland", "an post", "guinness",
+           "tayto", "brennans", "penneys", "brown thomas", "arnotts", "harvey norman", "currys", "smyths", "movies.ie", "her.ie", "joe.ie", "lovin"],
+    "it": ["esselunga", "conad", "coop", "carrefour", "mediaworld", "unieuro", "euronics", "barilla", "mulino bianco", "lavazza", "rai", "mediaset", "mondadori",
+           "autogrill", "eni", "enel", "tim", "wind tre", "fiat", "nutella", "san pellegrino", "peroni", "galbani", "algida", "despar", "pam", "eurospin", "radio deejay", "rtl 102.5", "radio 105"],
+    "au": ["woolworths", "coles", "jb hi-fi", "the good guys", "harvey norman", "bunnings", "kmart", "big w", "myer", "david jones", "qantas", "virgin australia",
+           "nova", "kiis", "triple m", "hit network", "abc", "channel 7", "channel 9", "channel 10", "seven", "nine", "rsl art union", "mater", "yourtown",
+           "endeavour foundation", "surf life saving", "telstra", "optus", "arnott", "cadbury", "uncle tobys", "iga"],
+    "nz": ["countdown", "woolworths", "new world", "pak'nsave", "pak n save", "the warehouse", "noel leeming", "harvey norman", "air new zealand", "nzme", "the hits",
+           "zm", "more fm", "the edge", "newstalk zb", "tvnz", "three", "stuff", "nz herald", "heart foundation", "spark", "one nz", "2degrees", "mitre 10",
+           "bunnings", "farmers", "briscoes", "whittaker", "watties", "lotto nz"],
+}
+LOCAL_SCAM = re.compile(r"(bearbeitungsgebühr|gewinnbenachrichtigung|gebühr (?:zahlen|bezahlen|überweisen)|frais de dossier|frais de traitement|administratiekosten|"
+                        r"betaal (?:eerst|de kosten)|spese di (?:gestione|spedizione) per (?:ritirare|ricevere) il premio|pagare per ricevere)", re.I)
+LOCAL_TRIAL = re.compile(r"(elk moment opzegbaar|gratis lot|gratis meespelen|proefabonnement|probeabo|kostenpflichtig\w* abo|testabo|essai gratuit|abonnement d'essai|prova gratuita|abbonamento di prova|free trial)", re.I)
+
+def brands():
+    cc = util.CUR["cc"]
+    return BIG_BRANDS if cc == "uk" else LOCAL_BRANDS.get(cc, []) + INTERNATIONAL_BRANDS
 
 DIRECTORIES = ("Competitions Time", "Competitions Today", "ThePrizeFinder", "Loquax", "Loquax Win-a-House", "MSE Competitions Time",
                "FindCompetitions", "Competition Showroom", "Latest Deals")
@@ -72,13 +115,13 @@ def assess(item, site=None):
     # --- positives
     if _has(prom + " " + d, ESTABLISHED):
         score += 3; pos.append("Established, well-known operator (heuristic list).")
-    elif _has(prom, BIG_BRANDS) or any(d.endswith(b) for b in BIG_DOMAINS) or _has(title, BIG_BRANDS[:60]) and not paid:
+    elif _has(prom, brands()) or any(d.endswith(b) for b in BIG_DOMAINS) or _has(title, brands()[:60] if util.CUR["cc"] == "uk" else brands()) and not paid:
         score += 3; pos.append("Recognised big brand / publisher.")
     if "radio" in (item.get("tags") or []) and item.get("entry_type") != "paid":
-        score += 3; pos.append("Run by an established UK radio broadcaster (check the station's competition T&Cs for entry rules).")
+        score += 3; pos.append(("Run by an established UK radio broadcaster" if util.CUR["cc"] == "uk" else "Run by an established radio broadcaster") + " (check the station's competition T&Cs for entry rules).")
     if "MSE Competitions Time" in srcs:
         score += 3; pos.append("Listed in MoneySavingExpert's moderated Competitions Time forum.")
-    if any(s in srcs for s in ("Competitions Time", "Competitions Today", "ThePrizeFinder", "Loquax", "Loquax Win-a-House")):
+    if any(s in srcs for s in ("Competitions Time", "Competitions Today", "ThePrizeFinder", "Loquax", "Loquax Win-a-House") + DIRECTORIES_INTL):
         score += 2; pos.append("Listed on a curated comping directory that screens submissions.")
     if extra.get("vcode"):
         score += 3; pos.append("Operator is a signatory of the UK Voluntary Code of Good Practice for Prize Draw Operators.")
@@ -87,7 +130,7 @@ def assess(item, site=None):
     if "Competition Showroom" in srcs or "FindCompetitions" in srcs:
         score += 1; pos.append("Operator tracked by a comparison site (published ticket counts).")
     if prom: score += 1
-    ndir = len([x for x in srcs if x in DIRECTORIES])
+    ndir = len([x for x in srcs if x in DIRECTORIES or x in DIRECTORIES_INTL])
     if ndir >= 2 and not paid:
         score += 1; pos.append(f"Cross-listed by {ndir} independent comping directories.")
     if site and site.get("terms"):
@@ -106,8 +149,16 @@ def assess(item, site=None):
     def flag(sev, text): flags.append({"sev": sev, "text": text})
     if not prom and not ("MSE Competitions Time" in srcs):
         flag("low", "No named promoter/company on the listing.")
-    if paid and not free_route:
+    cc = util.CUR["cc"]
+    tags = item.get("tags") or []
+    if paid and not free_route and cc == "uk":
         flag("medium", "Paid draw and I couldn't confirm a free (postal) entry route – UK law normally requires one or a genuine skill test.")
+    elif paid and cc != "uk" and "charity-lottery" not in tags:
+        flag("medium", _CPAGE[cc]["paid_note"] + " – check the operator's licence before paying.")
+    if "charity-lottery" in tags:
+        flag("info", "Paid charity / prize-home lottery – check the licence or permit number in its terms. 18+ only.")
+    elif "purchase" in tags:
+        flag("info", "A purchase is required to enter (keep your receipt / proof of purchase).")
     big_site = any(d == b or d.endswith("." + b) for b in BIG_DOMAINS)   # big brands' home pages are often JS-built, so the link check misses their T&Cs
     if site and site.get("checked") and not site.get("terms") and paid and not big_site:
         flag("medium", "No Terms & Conditions link found on the operator's website.")
@@ -117,19 +168,22 @@ def assess(item, site=None):
     if pd and (any(pd.endswith(t) for t in SCAM_TLDS) or pd in SHORTENERS):
         flag("high", f"Promoter's web address looks suspicious ({pd}).")
     text = f"{title} {item.get('prize_desc','')} {item.get('entry_note','')}"
-    if SCAM_WORDS.search(title + " " + item.get("prize_desc", "")):
+    if SCAM_WORDS.search(title + " " + item.get("prize_desc", "")) or LOCAL_SCAM.search(title + " " + item.get("prize_desc", "")):
         flag("high", "Scam-style/urgent wording (e.g. 'claim now', fees to claim, 'you've been selected').")
-    if item.get("entry_type") == "free" and CARD_FREE.search(title + " " + item.get("prize_desc", "") + " " + (item.get("entry_note") or "")):
+    cf_text = re.sub(r"\b(?:e-?mail|newsletter|mailing list|youtube|channel|podcast)\s+subscri\w*", " ", title + " " + item.get("prize_desc", "") + " " + (item.get("entry_note") or ""), flags=re.I)
+    if item.get("entry_type") == "free" and CARD_FREE.search(cf_text):
         flag("high", "Labelled free but mentions card details / trial / postage fee – check you won't be charged.")
+    elif LOCAL_TRIAL.search(title + " " + item.get("prize_desc", "") + " " + (item.get("entry_note") or "")):
+        flag("medium", "'Free' entry that signs you up for a trial or (lottery) subscription – it may become paid; read the small print.")
     if SPEND_TO_QUALIFY.search(title):
         flag("medium", "Described as free but title says you need to spend/deposit/be a (new) customer to qualify.")
     if item.get("entry_type") == "paid" and item.get("entry_cost") is not None and item["entry_cost"] >= 20:
-        flag("low", "High per-ticket cost – check your £30/month budget.")
+        flag("low", f"High per-ticket cost – check your {util.CUR['symbol']}30/month budget.")
     if item.get("prize_value") and item.get("entry_cost") and item.get("tickets_total"):
         rev = item["entry_cost"] * item["tickets_total"]
         if rev > 4 * item["prize_value"] and item["prize_value"] >= 500:
-            flag("low", f"Ticket revenue if sold out (~£{rev:,.0f}) is far above the stated prize value – poor value.")
-    if paid:
+            flag("low", f"Ticket revenue if sold out (~{util.CUR['symbol']}{rev:,.0f}) is far above the stated prize value – poor value.")
+    if paid and cc == "uk":
         flag("info", "Paid prize competitions (skill-based draws) are generally NOT licensed or regulated by the Gambling Commission, so you have fewer protections than with licensed gambling. 18+ only.")
     sev = {f["sev"] for f in flags}
     if "high" in sev or "medium" in sev:
@@ -153,12 +207,12 @@ def _reason(badge, item, site, pos, flags, srcs, prom, paid, ndir, big_site):
     if badge == "Verified":
         if any("Established" in p for p in pos): return "Established operator on our heuristic list – still read its T&Cs", "established"
         if any("big brand" in p for p in pos): return "Recognised brand/publisher – still read its T&Cs", "brand"
-        if any("radio broadcaster" in p for p in pos): return "Run by an established UK radio broadcaster", "radio"
+        if any("radio broadcaster" in p for p in pos): return ("Run by an established UK radio broadcaster" if util.CUR["cc"] == "uk" else "Run by an established radio broadcaster"), "radio"
         if any("MoneySavingExpert" in p for p in pos): return "Listed in MoneySavingExpert's moderated forum, promoter named", "mse"
         if has_terms: return "Promoter named, T&Cs found on its site, listed by a curated directory", "terms"
         return "Several independent signals (curated listing, named promoter) – not a guarantee", "signals"
     # Unverified
-    dirs = [x for x in srcs if x in DIRECTORIES]
+    dirs = [x for x in srcs if x in DIRECTORIES or x in DIRECTORIES_INTL]
     if not prom:
         if checked and not has_terms: return "Unknown promoter – no T&Cs found", "unknown-no-terms"
         if dirs: return "Unknown promoter – listed by " + (dirs[0] if len(dirs) == 1 else f"{len(dirs)} directories") + " but not identified", "unknown-promoter"
