@@ -99,6 +99,7 @@ select:focus{outline:none;border-color:var(--acc)}
 .tag.t-cat{background:rgba(0,0,0,.55);color:#fff}
 .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);padding-right:40px}
 .chips::-webkit-scrollbar{display:none}
+.btn.btn-via{background:var(--surface);color:var(--tx2);border:1px dashed var(--line)}
 .chip,.toggle{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap;color:var(--tx2)}
 .chip:hover,.toggle:hover{border-color:var(--line2)}
 .chip[aria-pressed=true],.toggle[aria-pressed=true]{background:var(--acc-soft);border-color:var(--acc);color:var(--tx);font-weight:600}
@@ -264,11 +265,13 @@ th{color:var(--tx3);font-weight:600}
     <button type="button" class="toggle" data-t="ending" aria-pressed="false">⏳ Ends within 24h</button>
     <button type="button" class="toggle" data-t="radio" aria-pressed="false" id="radioBtn">📻 Radio</button>
     <button type="button" class="toggle" data-t="pics" aria-pressed="false">🖼️ Has picture</button>
+    <button type="button" class="toggle" data-t="iow" aria-pressed="false" id="iowBtn" hidden title="Isle of Wight local competitions">🏝️ Isle of Wight</button>
     </div>
     <div class="grp grp-f">
     <label class="price" id="prizeBox" title="Prize value range. Use the tick box to keep competitions whose prize value isn't stated."><span class="cs">Prize £</span><input id="pmin" type="number" inputmode="numeric" min="0" step="1" placeholder="min" aria-label="Minimum prize value in pounds">–<input id="pmax" type="number" inputmode="numeric" min="0" step="1" placeholder="max" aria-label="Maximum prize value in pounds"></label>
     <label class="price chk" id="unkBox" title="Many listings don't state a prize value. Keep them in the results while a prize range is set (on by default)."><input type="checkbox" id="unk" checked aria-label="Include competitions with unknown prize value"> incl. unknown value</label>
     <label class="price" id="entryBox" title="Highest entry price you'll pay. Free entries are always included; paid entries without a listed price are hidden. Use 0 for free only."><span class="cs">Entry up to £</span><input id="emax" type="number" inputmode="decimal" min="0" step="0.01" placeholder="any" aria-label="Maximum entry price in pounds"></label>
+    <label class="price chk" id="ndBox" title="Normally only competitions with a direct link to the promoter's own page are shown. Tick to also show ones we could only link via a listing site."><input type="checkbox" id="nd" aria-label="Show items without a direct link"> show items without a direct link <span id="ndN" class="dim"></span></label>
     <select id="safety" aria-label="Safety rating">
       <option value="">Any safety rating</option>
       <option value="nocaution">Hide “Caution”</option>
@@ -355,7 +358,7 @@ const CAT_META = {
   "Books/Music/Film":["📚",265],"Gifts/Bundles":["🎀",345],"Other":["⭐",230]
 };
 const $ = id => document.getElementById(id);
-const st = {q:"", entry:"", sort:"new", cat:"", sub:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true};
+const st = {q:"", entry:"", sort:"new", cat:"", sub:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true, nd:false};
 const priceSet = () => st.pmin != null || st.pmax != null;
 let DATA = null, ITEMS = [], BYID = new Map(), LIST = [], shown = 0, cdEls = [];
 
@@ -410,6 +413,8 @@ function prep(){
       _base: base,
       _img: safeUrl(it.image),
       _radio: (it.tags || []).includes("radio"),
+      _iow: CC === "uk" && (it.tags || []).includes("iow"),
+      _direct: it.direct !== false,      // older data files have no flag: treat as direct
       _hay: [it.title, it.promoter, it.station, it.prize_desc, it.category, it.subcategory, it.sources.join(" ")].join(" ").toLowerCase()
     });
   }).filter(it => (it._cl == null || it._cl > now) && !/^\W{0,4}(?:competition\s+|now\s+)?(?:closed|ended|expired)\b/i.test(it.title));
@@ -440,6 +445,8 @@ function match(it, skip){
   if (st.safety === "nocaution" && it.safety.badge === "Caution") return false;
   if (st.t.has("fresh") && !isNew(it)) return false;
   if (st.t.has("radio") && !it._radio) return false;
+  if (st.t.has("iow") && !it._iow) return false;
+  if (!st.nd && !it._direct) return false;
   if (st.t.has("pics") && !it._img) return false;
   if (st.t.has("ending") && !(it._cl && it._cl - Date.now() < 864e5)) return false;
   if (priceSet()){
@@ -495,7 +502,7 @@ function card(it){
   <div class="media">
     <div class="ph" style="--h:${hue}"><span>${emoji}</span></div>
     ${it._img ? `<img src="${esc(it._img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}
-    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
+    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}${it._iow ? `<span class="tag">🏝️ IoW</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
   </div>
   <div class="body">
     <div class="kicker"><span class="b b-${esc(sf.badge)}" title="${esc((sf.reason ? sf.reason + " – " : "") + "automated safety guide, not a guarantee")}">${icon} ${esc(sf.badge)}</span><span class="prom" title="${esc(promoter)}">${esc(promoter)}</span></div>
@@ -507,7 +514,8 @@ function card(it){
     </div>
     ${why}${sold}${warn}
     <div class="foot">
-      <a class="btn" href="${esc(link)}" data-enter target="_blank" rel="noopener noreferrer nofollow">Enter on site ↗</a>
+      ${it._direct ? `<a class="btn" href="${esc(link)}" data-enter target="_blank" rel="noopener noreferrer nofollow">Enter on site ↗</a>`
+        : `<a class="btn btn-via" href="${esc(link)}" data-enter target="_blank" rel="noopener noreferrer nofollow" title="${esc("No direct promoter link found" + (it.unresolved_why ? ": " + it.unresolved_why : ""))}">Enter via listing site ↗</a>`}
       <button type="button" class="more-btn" aria-expanded="false">Details</button>
     </div>
     <div class="details"></div>
@@ -565,7 +573,8 @@ function render(keepScroll){
   $("grid").textContent = "";
   appendPage();
   $("empty").hidden = LIST.length > 0;
-  $("reset").hidden = !(st.q || st.entry || st.cat || st.sub || st.t.size || st.safety || st.src || priceSet() || st.emax != null || !st.unk);
+  $("reset").hidden = !(st.q || st.entry || st.cat || st.sub || st.t.size || st.safety || st.src || priceSet() || st.emax != null || !st.unk || st.nd);
+  const nd = ITEMS.filter(it => !it._direct).length; $("ndN").textContent = nd ? "(" + num(nd) + ")" : ""; $("ndBox").hidden = !nd;
   syncUrl();
   if (!keepScroll){   // results changed: bring the top of the list back into view
     const y = $("toolbar").offsetTop;
@@ -626,6 +635,7 @@ function syncUrl(){
   if (st.pmax != null) p.set("pmax", st.pmax);
   if (st.emax != null) p.set("emax", st.emax);
   if (!st.unk) p.set("unk", "0");
+  if (st.nd) p.set("nd", "1");
   const qs = p.toString();
   history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
 }
@@ -636,11 +646,12 @@ function readUrl(){
   st.sort = SORTS[p.get("sort")] ? p.get("sort") : "new";
   st.cat = p.get("cat") || "";
   st.sub = st.cat ? (p.get("sub") || "") : "";
-  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics"].includes(x)));
+  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow"].includes(x)));
   st.safety = ["verified", "nocaution"].includes(p.get("safety")) ? p.get("safety") : "";
   st.src = p.get("src") || "";
   st.pmin = toNum(p.get("pmin")); st.pmax = toNum(p.get("pmax")); st.emax = toNum(p.get("emax"));
   st.unk = p.get("unk") !== "0";
+  st.nd = p.get("nd") === "1";
 }
 function toNum(v){
   if (v == null || String(v).trim() === "") return null;
@@ -648,7 +659,7 @@ function toNum(v){
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 function syncControls(){
-  $("unk").checked = st.unk;
+  $("unk").checked = st.unk; $("nd").checked = st.nd;
   $("pmin").value = st.pmin ?? ""; $("pmax").value = st.pmax ?? ""; $("emax").value = st.emax ?? "";
   $("prizeBox").classList.toggle("on", priceSet()); $("entryBox").classList.toggle("on", st.emax != null);
   $("q").value = st.q; $("searchWrap").classList.toggle("has", !!st.q);
@@ -679,6 +690,7 @@ let pTimer;
   }, 300);
 }));
 $("unk").addEventListener("change", e => { st.unk = e.target.checked; render(); });
+$("nd").addEventListener("change", e => { st.nd = e.target.checked; render(); });
 $("entrySeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; st.entry = b.dataset.entry; syncControls(); render(); });
 $("row3").addEventListener("click", e => {
   const b = e.target.closest(".toggle"); if (!b) return;
@@ -687,7 +699,7 @@ $("row3").addEventListener("click", e => {
 });
 $("cats").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; st.cat = st.cat === b.dataset.c ? "" : b.dataset.c; st.sub = ""; render(); });
 $("subs").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; st.sub = st.sub === b.dataset.s ? "" : b.dataset.s; render(); });
-$("reset").addEventListener("click", () => { Object.assign(st, {q:"", entry:"", cat:"", sub:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true}); syncControls(); render(); });
+$("reset").addEventListener("click", () => { Object.assign(st, {q:"", entry:"", cat:"", sub:"", t:new Set(), safety:"", src:"", pmin:null, pmax:null, emax:null, unk:true, nd:false}); syncControls(); render(); });
 $("moreBtn").addEventListener("click", appendPage);
 $("grid").addEventListener("click", e => {
   const b = e.target.closest(".more-btn"); if (!b) return;
@@ -717,7 +729,8 @@ function applyCountry(){
     `<li>Titles are shown in the original language, as the source lists them. The <b>Verified / Unverified / Caution</b> badge is an automated guide, <b>not a guarantee</b>, so always read the promoter's terms.</li></ul><div class="links">${links}</div>`;
   radioVis();
 }
-function radioVis(){ const any = ITEMS.some(it => it._radio); $("radioBtn").hidden = !any; if (!any) st.t.delete("radio"); }
+function radioVis(){ const any = ITEMS.some(it => it._radio); $("radioBtn").hidden = !any; if (!any) st.t.delete("radio");
+  const iow = ITEMS.some(it => it._iow); $("iowBtn").hidden = !iow; if (!iow) st.t.delete("iow"); }
 document.querySelectorAll(".cs").forEach(x => { x.textContent = x.textContent.replace("£", CUR); });
 ["pmin", "pmax", "emax"].forEach(id => { const e = $(id); e.setAttribute("aria-label", e.getAttribute("aria-label").replace("pounds", CC === "uk" ? "pounds" : CC === "au" || CC === "nz" ? "dollars" : "euros")); });
 $("ccNote").hidden = false;

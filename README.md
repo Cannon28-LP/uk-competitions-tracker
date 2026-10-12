@@ -53,6 +53,26 @@ emulates each country's time zone/locale in a headless Chrome and checks the rig
 
 The hourly workflow runs one collector job per country in parallel (matrix); a failed country keeps its previous file and doesn't block the others.
 
+## Direct promoter links
+
+Every card's **Enter** button goes to the promoter's own competition page. For listing sites (ThePrizeFinder, Loquax, MSE,
+12gewinn, jeu-concours, competitions.ie …) the collector opens the listing's detail page, takes its *Enter / Visit / Participer /
+Teilnehmen / Doe mee* link and follows the listing site's own redirect hop by hop (each hop checked against robots.txt, using
+longest-match robots rules; the promoter page itself isn't fetched). Tracking/affiliate parameters (utm_*, fbclid, gclid, awc …)
+are removed. Results are cached in the state file; new items are resolved within a per-run budget, so a backlog clears over a few
+hourly runs (`comptracker/resolve.py`).
+
+Not resolved, by design: links only behind a robots-disallowed redirect (Competitions Time `/redir/`, Competitions Today `/go.php`,
+GewinnHai `/go/`), behind a sign-up wall (competitions.com.au / .co.nz), login-only forum threads, and affiliate/lead-generation
+redirect networks. Such items are **hidden by default**; the "show items without a direct link" box shows them with an
+"Enter via listing site" button.
+
+## Isle of Wight
+
+UK only: an **🏝️ Isle of Wight** chip filters local competitions – the Isle of Wight County Press competitions page, OnTheWight /
+Island Echo / Visit Isle of Wight giveaways, and any UK listing that names an Island place, attraction or ferry operator.
+No Facebook, no logins (`comptracker/src_iow.py`).
+
 ## ⚠️ Safety & disclaimer
 - **18+ only.** Nothing here enters competitions for you.
 - Paid prize competitions/draws are generally **not licensed or regulated by the Gambling Commission**. Play responsibly – set a budget; help is available from [BeGambleAware](https://www.begambleaware.org).
