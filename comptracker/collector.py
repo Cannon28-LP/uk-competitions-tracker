@@ -4,7 +4,7 @@ from . import sources as S
 from . import util
 from .util import Fetcher, now, LONDON, norm, norm_promoter, prize_value_from_text, is_closed_title
 from .classify import classify, prize_type
-from . import safety, dedupe, valuecheck, resolve, src_iow
+from . import safety, dedupe, valuecheck, resolve, src_iow, images
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.environ.get("COMP_DB") or os.path.join(BASE, "data", "comps.db")
@@ -120,6 +120,13 @@ def run(only=None, caps=None):
             rctx = Ctx(name, rfetcher, db, dict(caps, source_budget_s=caps.get("resolve_budget_s", 240)))
             rs = resolve.apply(rctx, name, kept, budget_s=caps.get("resolve_budget_s", 240), max_new=caps.get("resolve_max", 250))
             ctx.meta.update(direct_links=rs["direct"] + rs["resolved"], unresolved=rs["unresolved"], resolve_pending=rs["pending"])
+            try:      # prize picture from the promoter page (og:image) when the source had none
+                left = images.RUN.setdefault("left", caps.get("img_total_s", 240)); _ti = time.time()
+                ist = images.apply(rctx, kept, budget_s=max(0, min(60, left)), max_new=caps.get("img_max", 60))
+                images.RUN["left"] = left - (time.time() - _ti)
+                ctx.meta.update(images_og=ist["cached"] + ist["found"], images_pending=ist["pending"])
+            except Exception as e:
+                print(f"  og:image step failed: {e}")
         prev_count = db.execute("SELECT count(*) FROM raw WHERE source=?", (name,)).fetchone()[0]
         if not first_run and prev_count == 0 and not db.execute("SELECT 1 FROM source_status WHERE source=? AND last_ok IS NOT NULL", (name,)).fetchone():
             for it in kept: it["backfill"] = True      # a source's very first successful run: we didn't see these appear, so no NEW flags
@@ -264,6 +271,7 @@ def merge_and_store(db, fetcher, t0, summary=None):
         tags = sorted({t for m in ms for t in (m.get("tags") or [])})
         if util.CUR["cc"] == "uk" and "iow" not in tags and src_iow.is_iow(item): tags = list(tags) + ["iow"]
         if util.CUR["cc"] == "uk" and "hampshire" not in tags and src_iow.is_hants(item): tags = list(tags) + ["hampshire"]
+        if util.CUR["cc"] == "uk" and "london" not in tags and src_iow.is_london(item): tags = list(tags) + ["london"]
         item["tags"] = tags
         if item["prize_value"] is None:
             item["prize_value"] = prize_value_from_text(item["title"])

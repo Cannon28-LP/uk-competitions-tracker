@@ -119,6 +119,29 @@ jobs:
           touch _site/.nojekyll
           ls -la _site _site/data
 
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-chromium-${{ runner.os }}-v1
+
+      # prize pictures: thumbnails of the promoter page for items that still have no picture (og:image is already tried by
+      # the collector). Cached per item on the `data` branch (never in main's history), new items only, per-run budget.
+      - name: Screenshot thumbnails
+        continue-on-error: true
+        timeout-minutes: 9
+        run: |
+          pip install -r requirements.txt playwright pillow
+          python -m playwright install --with-deps chromium
+          python -u -m comptracker.shots databr _site --budget 40 --minutes 6
+          [ -f databr/data/uk.json ] && cp databr/data/uk.json databr/competitions.json && cp databr/competitions.json _site/competitions.json
+          du -sh databr/shots _site/shots || true
+
       - name: Commit data (single squashed commit on `data` branch, so history never grows)
         working-directory: databr
         run: |
