@@ -12,9 +12,21 @@ EXCLUDED = {
     "Radio: talkSPORT": "talkSPORT's robots.txt disallows automated access to its competitions pages, so it is not collected. (Its competitions are not listed here.)",
 }
 
-def source(name, kind, url, note="", direct=False):
+# Other countries: candidate sources checked and NOT collected (shown in that country's status table).
+EXCLUDED_INTL = {
+    "de": {"Gewinnspiel portals with logins/paywalls": "Only public listing pages are used; sites that need an account to see entry links are not collected."},
+    "nl": {"GratiZ.nl": "Answers automated requests with HTTP 403, so it is not collected."},
+    "it": {"OmaggioMania / ScontOmaggio / Soldissimi": "These answer automated requests with HTTP 403, so they are not collected."},
+    "ie": {"WinCompetitions.ie": "Its server refuses our TLS connection, so it is not collected."},
+    "nz": {"Contest.co.nz": "Answers automated requests with HTTP 403, so it is not collected."},
+}
+
+def excluded_for(cc):
+    return EXCLUDED if cc == "uk" else EXCLUDED_INTL.get(cc, {})
+
+def source(name, kind, url, note="", direct=False, country="uk"):
     def deco(fn):
-        REGISTRY[name] = dict(fn=fn, kind=kind, url=url, note=note, direct=direct, name=name)
+        REGISTRY[name] = dict(fn=fn, kind=kind, url=url, note=note, direct=direct, name=name, country=country)
         return fn
     return deco
 
@@ -956,3 +968,4 @@ def radio_bauer(ctx):
     ctx.meta["stations_ok"] = n_ok
     return out
 
+from . import src_intl  # noqa: E402,F401  (registers the other countries' sources)
