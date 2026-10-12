@@ -73,6 +73,12 @@ UK only: an **🏝️ Isle of Wight** chip filters local competitions – the Is
 Island Echo / Visit Isle of Wight giveaways, and any UK listing that names an Island place, attraction or ferry operator.
 No Facebook, no logins (`comptracker/src_iow.py`).
 
+## Hampshire
+
+UK only: a **🌳 Hampshire** chip – Newsquest's Hampshire papers (Daily Echo, Hampshire Chronicle, Basingstoke Gazette, Andover & Romsey
+Advertiser), Visit Hampshire and Hampshire Life giveaways, Greatest Hits Radio South Coast (ex-Wave 105), plus any UK listing naming a
+Hampshire place, venue or attraction. Newsquest's papers share network-wide competitions, so these also appear under Isle of Wight.
+
 ## ⚠️ Safety & disclaimer
 - **18+ only.** Nothing here enters competitions for you.
 - Paid prize competitions/draws are generally **not licensed or regulated by the Gambling Commission**. Play responsibly – set a budget; help is available from [BeGambleAware](https://www.begambleaware.org).

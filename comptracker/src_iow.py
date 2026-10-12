@@ -16,22 +16,20 @@ def is_iow(it):
 
 CP = "https://www.countypress.co.uk"
 
-@source("Isle of Wight County Press", "publisher", CP + "/competitions/",
-        "The Island's newspaper (Newsquest). Its competitions page; many are open to digital subscribers only (flagged as paid entry).", direct=True)
-def county_press(ctx):
-    r = ctx.get(CP + "/competitions/")
+def _newsquest(ctx, base, paper, tag):
+    r = ctx.get(base + "/competitions/")
     if not r: return []
     out = []
     for card in soup(r).select(".omnicompetitioncard"):
         a = card.select_one('a[href*="/competitions/"]'); h3 = card.select_one("h3")
         if not a or not h3: continue
-        link = a["href"] if a["href"].startswith("http") else CP + a["href"]
+        link = a["href"] if a["href"].startswith("http") else base + a["href"]
         title = clean(h3.get_text()); desc = clean((card.select_one(".metadata-container p") or h3).get_text())
         ban = clean((card.select_one(".banner") or card).get_text())
         cl = closing_from_text(ban) if "closing" in ban.lower() else None
-        out.append(rec(title=title, promoter="Isle of Wight County Press", link=link, prize_desc=desc, prize_value=prize_value_from_text(title + " " + desc),
-                       entry_type="free", entry_note="Isle of Wight County Press competition (UK residents 18+).",
-                       closes_at=cl[0] if cl else None, closes_precision=cl[1] if cl else "", skey=link, image=img_url(card, CP + "/"), tags=["iow"]))
+        out.append(rec(title=title, promoter="Newsquest Media Group", link=link, prize_desc=desc, prize_value=prize_value_from_text(title + " " + desc),
+                       entry_type="free", entry_note=f"{paper} competition (Newsquest; UK residents 18+).",
+                       closes_at=cl[0] if cl else None, closes_precision=cl[1] if cl else "", skey=link, image=img_url(card, base + "/"), tags=[tag]))
     # subscriber-only check (cached per page; re-checked every 3 days)
     for o in out:
         c = ctx.cache_get("cpsub:" + o["link"])
@@ -43,8 +41,13 @@ def county_press(ctx):
             ctx.cache_put("cpsub:" + o["link"], c)
         if c.get("sub"):
             o.update(entry_type="paid", entry_cost=None, entry_cost_text="Digital subscription required",
-                     entry_note="County Press digital subscribers only (subscription needed to enter).")
+                     entry_note=f"{paper} digital subscribers only (subscription needed to enter).")
     return [o for o in out if not o["closes_at"] or o["closes_at"] > now()]
+
+@source("Isle of Wight County Press", "publisher", CP + "/competitions/",
+        "The Island's newspaper (Newsquest). Its competitions page; many are open to digital subscribers only (flagged as paid entry).", direct=True)
+def county_press(ctx):
+    return _newsquest(ctx, CP, "Isle of Wight County Press", "iow")
 
 WIN = re.compile(r"^(win|competition|giveaway)\b|\b(competition|giveaway|prize draw)\s*[:–-]\s*win\b|\bchance to win\b|\bwin (?:a|an|tickets|one of|\d)", re.I)
 NOT_COMP = re.compile(r"\b(wins|won|winner|winning|award|awards|prize for|shortlist|trophy|league|match|cup|race|bid|grants?)\b", re.I)
@@ -106,3 +109,87 @@ def soup_text(html):
 def _tag(xml, name):
     m = re.search(rf"<{name}>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</{name}>", xml, re.S)
     return m.group(1) if m else ""
+
+
+# ================================================================ Hampshire (UK, tagged 'hampshire')
+HANTS_RX = re.compile(r"(hampshire|\bhants\b|southampton|portsmouth|winchester|basingstoke|andover|\bromsey\b|new forest|lymington|\bfareham\b|"
+                      r"\bgosport\b|\beastleigh\b|\bhavant\b|\bpetersfield\b|\balton\b(?![\s-]towers)|\bfleet\b,? hants|\bringwood\b|\bbrockenhurst\b|"
+                      r"paultons|peppa pig world|marwell|beaulieu|spinnaker tower|historic dockyard|mary rose|exbury|mayflower theatre|"
+                      r"wave 105|radio solent|st mary'?s stadium|fratton park|\bthe saints\b|pompey\b)", re.I)
+
+def is_hants(it):
+    return bool(HANTS_RX.search(" ".join([it.get("title") or "", it.get("prize_desc") or "", it.get("promoter") or "", it.get("link") or ""])))
+
+NQ_HANTS = [("https://www.dailyecho.co.uk", "Southern Daily Echo"), ("https://www.hampshirechronicle.co.uk", "Hampshire Chronicle"),
+            ("https://www.basingstokegazette.co.uk", "Basingstoke Gazette"), ("https://www.andoveradvertiser.co.uk", "Andover Advertiser"),
+            ("https://www.romseyadvertiser.co.uk", "Romsey Advertiser")]
+
+@source("Hampshire newspapers (Daily Echo, Hampshire Chronicle, Basingstoke Gazette, Andover & Romsey Advertiser)", "publisher",
+        "https://www.dailyecho.co.uk/competitions/",
+        "Newsquest's Hampshire titles share one competitions system (often the same network-wide prizes; merged as duplicates). "
+        "Many are digital-subscriber only. The News Portsmouth has no public competitions page.", direct=True)
+def hants_papers(ctx):
+    out = []
+    byid = {}
+    for base, paper in NQ_HANTS:
+        got = _newsquest(ctx, base, paper, "hampshire"); ctx.meta[paper.split()[0].lower()] = len(got)
+        for o in got:      # the papers share one system: competition 227 on the Echo is competition 227 on the Chronicle
+            cid = re.search(r"/competitions/(\d+)\.", o["link"]); k = cid.group(1) if cid else o["link"]
+            if k in byid: byid[k]["entry_note"] += f" Also on {paper}."
+            else: byid[k] = o
+    return list(byid.values())
+
+@source("Hampshire: Visit Hampshire & Hampshire Life", "publisher", "https://www.visit-hampshire.co.uk/visitor-information/competitions",
+        "Visit Hampshire (official tourism site) competitions and Hampshire Life magazine giveaways ('Win …' articles).", direct=True, allow_empty=True)
+def hants_tourism(ctx):
+    out = []
+    r = ctx.get("https://www.visit-hampshire.co.uk/visitor-information/competitions")
+    if r:
+        seen = set()
+        for a in soup(r).select('a[href*="/visitor-information/competitions/"]'):
+            t = clean(a.get_text()); h = a["href"]
+            if not WIN.search(t) or h in seen: continue
+            seen.add(h); link = h if h.startswith("http") else "https://www.visit-hampshire.co.uk" + h
+            out.append(rec(title=t, promoter="Visit Hampshire", link=link, prize_desc=t, prize_value=prize_value_from_text(t), entry_type="free",
+                           entry_note="Visit Hampshire (official tourism site) competition.", skey=link, tags=["hampshire"]))
+        ctx.meta["visit_hampshire"] = len(seen)
+    r = ctx.get("https://www.hampshire-life.co.uk/competitions/")
+    if r:
+        seen = set()
+        for a in soup(r).select("a[href]"):
+            t = clean(a.get_text()); h = a["href"]
+            if not re.search(r"/\d+\.win-", h): continue
+            if len(t) < 12:      # image/short link: title from the slug
+                t = "Win " + re.sub(r"^\d+\.win-", "", h.rstrip("/").rsplit("/", 1)[-1]).replace("-", " ")
+            if not WIN.search(t) or h in seen: continue
+            seen.add(h); link = h if h.startswith("http") else "https://www.hampshire-life.co.uk" + h
+            out.append(rec(title=t, promoter="Hampshire Life", link=link, prize_desc=t, prize_value=prize_value_from_text(t), entry_type="free",
+                           entry_note="Hampshire Life magazine giveaway; closing date in the article.", skey=link, tags=["hampshire"]))
+        ctx.meta["hampshire_life"] = len(seen)
+    dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("hants_detail", 15))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"])
+        if d:
+            if d[0] < now(): continue
+            o["closes_at"], o["closes_precision"] = d
+        keep.append(o)
+    return keep
+
+GHRSC = "https://www.hellorayo.co.uk/greatest-hits/south-coast/win"
+
+@source("Radio: Greatest Hits Radio South Coast (formerly Wave 105)", "radio", GHRSC,
+        "Bauer's Hampshire/Dorset station; its public win page (Bauer competition terms apply). Heart South / Capital South have no "
+        "separate public win page (Global's national pages are already collected); BBC Radio Solent lists no competitions.", direct=True, allow_empty=True)
+def ghr_south_coast(ctx):
+    r = ctx.get(GHRSC)
+    if not r: return []
+    out = []; seen = set()
+    for a in soup(r).select('a[href*="/greatest-hits/south-coast/win/"]'):
+        t = clean(a.get_text()); h = a["href"]
+        if not t or not WIN.search(t) or h in seen: continue
+        seen.add(h); link = h if h.startswith("http") else "https://www.hellorayo.co.uk" + h
+        out.append(rec(title=t, promoter="Greatest Hits Radio South Coast", link=link, prize_desc=t, prize_value=prize_value_from_text(t),
+                       entry_type="free", entry_note="Bauer radio competition (Bauer competition terms).", station="Greatest Hits Radio South Coast",
+                       skey=link, tags=["radio", "hampshire"]))
+    return out

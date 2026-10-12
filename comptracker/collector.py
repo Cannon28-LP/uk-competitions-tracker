@@ -263,6 +263,7 @@ def merge_and_store(db, fetcher, t0, summary=None):
         item["station"] = ", ".join(dict.fromkeys(x.strip() for m in ms for x in (m.get("station") or "").split(",") if x.strip()))
         tags = sorted({t for m in ms for t in (m.get("tags") or [])})
         if util.CUR["cc"] == "uk" and "iow" not in tags and src_iow.is_iow(item): tags = list(tags) + ["iow"]
+        if util.CUR["cc"] == "uk" and "hampshire" not in tags and src_iow.is_hants(item): tags = list(tags) + ["hampshire"]
         item["tags"] = tags
         if item["prize_value"] is None:
             item["prize_value"] = prize_value_from_text(item["title"])

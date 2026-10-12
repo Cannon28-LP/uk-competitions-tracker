@@ -266,6 +266,7 @@ th{color:var(--tx3);font-weight:600}
     <button type="button" class="toggle" data-t="radio" aria-pressed="false" id="radioBtn">📻 Radio</button>
     <button type="button" class="toggle" data-t="pics" aria-pressed="false">🖼️ Has picture</button>
     <button type="button" class="toggle" data-t="iow" aria-pressed="false" id="iowBtn" hidden title="Isle of Wight local competitions">🏝️ Isle of Wight</button>
+    <button type="button" class="toggle" data-t="hants" aria-pressed="false" id="hantsBtn" hidden title="Hampshire local competitions">🌳 Hampshire</button>
     </div>
     <div class="grp grp-f">
     <label class="price" id="prizeBox" title="Prize value range. Use the tick box to keep competitions whose prize value isn't stated."><span class="cs">Prize £</span><input id="pmin" type="number" inputmode="numeric" min="0" step="1" placeholder="min" aria-label="Minimum prize value in pounds">–<input id="pmax" type="number" inputmode="numeric" min="0" step="1" placeholder="max" aria-label="Maximum prize value in pounds"></label>
@@ -414,6 +415,7 @@ function prep(){
       _img: safeUrl(it.image),
       _radio: (it.tags || []).includes("radio"),
       _iow: CC === "uk" && (it.tags || []).includes("iow"),
+      _hants: CC === "uk" && (it.tags || []).includes("hampshire"),
       _direct: it.direct !== false,      // older data files have no flag: treat as direct
       _hay: [it.title, it.promoter, it.station, it.prize_desc, it.category, it.subcategory, it.sources.join(" ")].join(" ").toLowerCase()
     });
@@ -446,6 +448,7 @@ function match(it, skip){
   if (st.t.has("fresh") && !isNew(it)) return false;
   if (st.t.has("radio") && !it._radio) return false;
   if (st.t.has("iow") && !it._iow) return false;
+  if (st.t.has("hants") && !it._hants) return false;
   if (!st.nd && !it._direct) return false;
   if (st.t.has("pics") && !it._img) return false;
   if (st.t.has("ending") && !(it._cl && it._cl - Date.now() < 864e5)) return false;
@@ -502,7 +505,7 @@ function card(it){
   <div class="media">
     <div class="ph" style="--h:${hue}"><span>${emoji}</span></div>
     ${it._img ? `<img src="${esc(it._img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}
-    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}${it._iow ? `<span class="tag">🏝️ IoW</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
+    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}${it._iow ? `<span class="tag">🏝️ IoW</span>` : ""}${it._hants ? `<span class="tag">🌳 Hants</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
   </div>
   <div class="body">
     <div class="kicker"><span class="b b-${esc(sf.badge)}" title="${esc((sf.reason ? sf.reason + " – " : "") + "automated safety guide, not a guarantee")}">${icon} ${esc(sf.badge)}</span><span class="prom" title="${esc(promoter)}">${esc(promoter)}</span></div>
@@ -646,7 +649,7 @@ function readUrl(){
   st.sort = SORTS[p.get("sort")] ? p.get("sort") : "new";
   st.cat = p.get("cat") || "";
   st.sub = st.cat ? (p.get("sub") || "") : "";
-  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow"].includes(x)));
+  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow", "hants"].includes(x)));
   st.safety = ["verified", "nocaution"].includes(p.get("safety")) ? p.get("safety") : "";
   st.src = p.get("src") || "";
   st.pmin = toNum(p.get("pmin")); st.pmax = toNum(p.get("pmax")); st.emax = toNum(p.get("emax"));
@@ -730,7 +733,8 @@ function applyCountry(){
   radioVis();
 }
 function radioVis(){ const any = ITEMS.some(it => it._radio); $("radioBtn").hidden = !any; if (!any) st.t.delete("radio");
-  const iow = ITEMS.some(it => it._iow); $("iowBtn").hidden = !iow; if (!iow) st.t.delete("iow"); }
+  const iow = ITEMS.some(it => it._iow); $("iowBtn").hidden = !iow; if (!iow) st.t.delete("iow");
+  const hs = ITEMS.some(it => it._hants); $("hantsBtn").hidden = !hs; if (!hs) st.t.delete("hants"); }
 document.querySelectorAll(".cs").forEach(x => { x.textContent = x.textContent.replace("£", CUR); });
 ["pmin", "pmax", "emax"].forEach(id => { const e = $(id); e.setAttribute("aria-label", e.getAttribute("aria-label").replace("pounds", CC === "uk" ? "pounds" : CC === "au" || CC === "nz" ? "dollars" : "euros")); });
 $("ccNote").hidden = false;

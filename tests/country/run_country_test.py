@@ -70,6 +70,8 @@ with sync_playwright() as p:
             check(pg.evaluate("LIST.length") > shown_n and pg.evaluate("LIST.some(i => !i._direct) && card(LIST.find(i => !i._direct)).includes('via listing site')"), f"[{name}] toggle shows items without a direct link, labelled 'via listing site'")
             pg.uncheck("#nd"); pg.wait_for_timeout(100)
         iow = sum(1 for i in exp["items"] if "iow" in (i.get("tags") or []))
+        hn = sum(1 for i in exp["items"] if "hampshire" in (i.get("tags") or []))
+        check(pg.is_hidden("#hantsBtn") == (cc != "uk" or not hn), f"[{name}] Hampshire chip {'shown' if cc == 'uk' and hn else 'hidden'}")
         check(pg.is_hidden("#iowBtn") == (cc != "uk" or not iow), f"[{name}] Isle of Wight chip {'shown' if cc == 'uk' and iow else 'hidden'}")
         if pg.evaluate("LIST.length") == 0: pg.check("#nd"); pg.wait_for_timeout(200)
         txt = pg.inner_text("#grid")
