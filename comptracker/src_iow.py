@@ -3,7 +3,7 @@ Checked Oct 2026: isleofwightradio.com is a parked domain (the station is iwradi
 Wightlink / Red Funnel / Hovertravel / IOW Festival have no public competitions page (their giveaways run on social media);
 Island Echo's search/API is behind a Cloudflare challenge (its public RSS feed is used)."""
 import re
-from datetime import timedelta
+from datetime import timedelta, datetime
 from .sources import source, rec, soup, clean, img_url, detail_closing
 from .util import now, prize_value_from_text, closing_from_text, parse_date
 
@@ -193,3 +193,146 @@ def ghr_south_coast(ctx):
                        entry_type="free", entry_note="Bauer radio competition (Bauer competition terms).", station="Greatest Hits Radio South Coast",
                        skey=link, tags=["radio", "hampshire"]))
     return out
+
+# ================================================================ Bauer regional stations (Hits Radio / Greatest Hits Radio areas)
+BAUER_REGIONS = [("hits-radio", "Hits Radio", r) for r in ("manchester", "birmingham", "liverpool", "coventry", "east-midlands", "lancashire",
+                 "staffordshire", "teesside", "bristol", "oxfordshire", "cambridgeshire", "south-coast")] + \
+                [("greatest-hits", "Greatest Hits Radio", r) for r in ("manchester", "lancashire", "west-midlands", "north-east", "teesside",
+                 "bristol", "kent", "oxfordshire", "cambridgeshire", "glasgow", "edinburgh")]
+
+MONTHS = ["january","february","march","april","may","june","july","august","september","october","november","december"]
+
+def _region_name(r): return r.replace("-", " ").title()
+
+@source("Radio: Bauer regional stations (Hits Radio & Greatest Hits Radio areas)", "radio", "https://www.hellorayo.co.uk/hits-radio/manchester/win",
+        "Bauer's regional win pages (23 areas, e.g. Hits Radio Manchester, Greatest Hits Radio Kent/Glasgow); local prizes not on the national pages. "
+        "Greatest Hits Radio South Coast is its own source (Hampshire).", direct=True, allow_empty=True)
+def radio_bauer_regional(ctx):
+    byslug = {}
+    for brand, bname, reg in BAUER_REGIONS:
+        base = f"https://www.hellorayo.co.uk/{brand}/{reg}/win"
+        r = ctx.get(base)
+        if not r: continue
+        for a in soup(r).select(f'a[href*="/{brand}/{reg}/win/"]'):
+            h = a["href"]; m = re.search(r"/win/([a-z0-9-]+)", h)
+            t = clean(a.get_text())
+            if not m: continue
+            if len(t) < 8: t = m.group(1).replace("-", " ").replace("pound", "£").capitalize()
+            if not WIN.search(t) or re.search(r"(terms|t-cs|ts-and-cs|privacy)", h): continue
+            my = re.search(r"(" + "|".join(MONTHS) + r")-?(20\d\d)", m.group(1))
+            if my and (int(my.group(2)), MONTHS.index(my.group(1)) + 1) < (now().year, now().month): continue   # e.g. '...-june2026-sponsored'
+            st = f"{bname} {_region_name(reg)}"
+            c = byslug.setdefault(m.group(1), dict(t=t, link=h if h.startswith("http") else "https://www.hellorayo.co.uk" + h, st=[], reg=[]))
+            if st not in c["st"]: c["st"].append(st); c["reg"].append(_region_name(reg))
+    out = []
+    for cs, c in byslug.items():
+        if "/greatest-hits/south-coast/" in c["link"]: continue
+        tags = ["radio"] + (["hampshire"] if "South Coast" in c["reg"] else [])
+        out.append(rec(title=c["t"], promoter=c["st"][0], link=c["link"], prize_desc=c["t"], prize_value=prize_value_from_text(c["t"]),
+                       entry_type="free", entry_note="Bauer regional radio competition (Bauer competition terms); region: " + ", ".join(c["reg"]) + ".",
+                       station=", ".join(c["st"][:4]), skey=c["link"], tags=tags))
+    ctx.meta["regional_comps"] = len(out)
+    return out
+
+# ================================================================ Metro Competitions (DMG's paid prize draws, linked from metro.co.uk)
+MC = "https://metrocompetitions.com"
+
+@source("Metro Competitions", "operator", MC + "/competitions",
+        "Metro's own prize-draw site (DMG Media), linked from metro.co.uk/competitions: paid tickets (typically 10p-£1) with a free postal entry route.", direct=True)
+def metro_comps(ctx):
+    r = ctx.get(MC + "/competitions")
+    if not r: return []
+    out = []; seen = set()
+    for a in soup(r).select('a[href^="/competitions/"]'):
+        h = a["href"]
+        if h.count("/") < 3 or h in seen: continue
+        h3 = a.select_one("h3")
+        if not h3: continue
+        seen.add(h); t = clean(h3.get_text()); sub = a.select_one("h3 + p"); sub = clean(sub.get_text()) if sub else ""
+        txt = clean(a.get_text(" "))
+        pm = re.search(r"(£\s?\d+(?:\.\d\d)?|\d+p)\s*per ticket", txt)
+        cost = None
+        if pm:
+            v = pm.group(1).replace(" ", ""); cost = float(v[1:]) if v.startswith("£") else int(v[:-1]) / 100
+        pct = re.search(r"(\d{1,3})\s*%\s*sold", txt)
+        title = t + (f" ({sub})" if sub else "")
+        out.append(rec(title="Win " + title if not t.lower().startswith("win") else title, promoter="Metro Competitions (DMG Media)",
+                       link=MC + h, prize_desc=title, prize_value=prize_value_from_text(title), entry_type="paid", entry_cost=cost,
+                       entry_cost_text=(pm.group(1) + " per ticket") if pm else "", pct_sold=int(pct.group(1)) if pct else None,
+                       entry_note="Paid prize draw" + ("; free postal entry available" if "postal" in txt.lower() else "") + ".",
+                       image=img_url(a, MC), skey=MC + h))
+    return out
+
+# ================================================================ London
+LONDON_RX = re.compile(r"\blondon\b(?![\s-](?:road|street|colney|ontario))|\b(westminster|camden|islington|hackney|tower hamlets|southwark|lambeth|"
+    r"wandsworth|hammersmith|fulham|kensington|chelsea|greenwich|lewisham|croydon|bromley|barnet|enfield|haringey|brent|ealing|hounslow|"
+    r"richmond upon thames|kingston upon thames|merton|sutton|harrow|hillingdon|newham|redbridge|havering|bexley|barking|dagenham|waltham forest|"
+    r"shoreditch|soho|covent garden|mayfair|notting hill|brixton|stratford|canary wharf|wimbledon|wembley|twickenham|west end|"
+    r"the o2|o2 arena|southbank centre|barbican|royal albert hall|alexandra palace|ally pally|hyde park|regent'?s park|kew gardens|"
+    r"tower of london|london eye|sea life london|madame tussauds|zsl|london zoo|natural history museum|science museum|v&a|tate modern|"
+    r"british museum|shakespeare'?s globe|lyceum theatre|palladium|drury lane|sadler'?s wells|old vic|young vic|national theatre|"
+    r"abba voyage|harry potter studios?|warner bros\.? studio tour|winter wonderland|ovo arena|copper box|olympia london|excel london)\b", re.I)
+
+def is_london(it):
+    t = " ".join([it.get("title") or "", it.get("prize_desc") or "", it.get("promoter") or ""])
+    return bool(LONDON_RX.search(t)) and not re.search(r"\bnew london\b|\blondon,? (ontario|ohio|kentucky)\b", t, re.I)
+
+@source("London local (MyLondon, Secret London)", "publisher", "https://www.mylondon.news/all-about/competitions",
+        "London giveaways from MyLondon (Reach) and Secret London; only articles with a future closing date in the text, or published in the "
+        "last 45 days. Time Out London (no current competitions), Evening Standard (no competitions page) and Londonist (no tag page) list none.",
+        direct=True, allow_empty=True)
+def london_local(ctx):
+    out = []; recent = set()
+    r = ctx.get("https://www.mylondon.news/all-about/competitions")
+    if r:
+        ss = soup(r); seen = {}
+        for a in ss.find_all("a", href=True):
+            h = a["href"]; m = re.search(r"-(\d{8})$", h)
+            if not m or h in seen: continue
+            slug = h.rstrip("/").rsplit("/", 1)[-1]
+            if not re.search(r"(^win-|competition|giveaway|chance-win|could-win)", slug): continue
+            seen[h] = int(m.group(1))
+        fetched = 0; cutoff = now() - timedelta(days=45)
+        for h, n in sorted(seen.items(), key=lambda x: -x[1]):
+            link = h if h.startswith("http") else "https://www.mylondon.news" + h
+            c = ctx.cache_get("mlpub:" + link)
+            if c is None:
+                if fetched >= ctx.cap("mylondon_detail", 20): continue
+                fetched += 1; rr = ctx.get(link)
+                if not rr: continue
+                html = rr.text or ""
+                tm = re.search(r"<title>(.*?)</title>", html, re.S); pm = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html)
+                c = dict(t=clean(re.sub(r"\s*-\s*My London\s*$", "", tm.group(1))) if tm else "", pub=pm.group(1) if pm else "")
+                ctx.cache_put("mlpub:" + link, c)
+            try: pub = datetime.fromisoformat(c["pub"].replace("Z", "+00:00"))
+            except Exception: continue
+            if pub < cutoff: continue                       # older articles: the giveaway has almost always closed
+            t = c.get("t") or ("Win " + re.sub(r"^win-", "", re.sub(r"-\d{8}$", "", link.rsplit("/", 1)[-1])).replace("-", " "))
+            recent.add(link)
+            out.append(rec(title=t, promoter="MyLondon (Reach plc)", link=link, prize_desc=t, entry_type="free",
+                           entry_note="MyLondon giveaway; closing date and terms in the article.", skey=link, tags=["london"]))
+        ctx.meta["mylondon"] = len(seen)
+    after = (now() - timedelta(days=45)).strftime("%Y-%m-%dT00:00:00")
+    r = ctx.get(f"https://secretldn.com/wp-json/wp/v2/posts?search=win&after={after}&per_page=50&_fields=link,title,date")
+    if r:
+        try: posts = r.json()
+        except Exception: posts = []
+        n_sl = 0
+        for p in posts:
+            link = p.get("link") or ""; t = clean(re.sub(r"<[^>]+>", "", (p.get("title") or {}).get("rendered", "")))
+            if re.search(r"secretldn\.com/[a-z]{2}/", link) or not WIN.search(t): continue
+            n_sl += 1; recent.add(link)
+            out.append(rec(title=t, promoter="Secret London", link=link, prize_desc=t, prize_value=prize_value_from_text(t), entry_type="free",
+                           entry_note="Secret London giveaway; closing date in the article.", skey=link, tags=["london"]))
+        ctx.meta["secret_london"] = n_sl
+    dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("london_detail", 25))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"])
+        if d:
+            if d[0] < now(): continue
+            o["closes_at"], o["closes_precision"] = d
+        elif o["link"] not in recent: continue       # old article with no stated closing date: most likely finished
+        o["prize_value"] = o["prize_value"] or prize_value_from_text(o["title"])
+        keep.append(o)
+    return keep

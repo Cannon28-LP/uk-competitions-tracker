@@ -922,11 +922,11 @@ BAUER_STATIONS = [("kiss", "Kiss"), ("kisstory", "Kisstory"), ("absolute-radio",
                   ("greatest-hits", "Greatest Hits Radio"), ("magic", "Magic"), ("mellow-magic", "Mellow Magic"), ("jazz-fm", "Jazz FM"),
                   ("planet-rock", "Planet Rock"), ("kerrang", "Kerrang! Radio"), ("heat", "Heat Radio"), ("clyde", "Clyde 1"),
                   ("forth", "Forth 1"), ("tay", "Tay FM"), ("northsound", "Northsound 1"), ("mfr", "MFR"), ("downtown", "Downtown Radio"),
-                  ("cool-fm", "Cool FM")]
+                  ("cool-fm", "Cool FM"), ("magic-soul", "Magic Soul")]
 _JUNK = re.compile(r"(terms|ts-and-cs|t-cs|-tcs|survey|trial-job|register|what-you-think|tell-us|call-yersel|music-online-quiz|kool-ride|on-?air-terms|privacy|faq)", re.I)
 
 @source("Radio: Bauer / Hello Rayo (Kiss, Absolute, Hits, Magic, Jazz FM, Clyde…)", "radio", "https://www.hellorayo.co.uk/kiss/competitions",
-        "Bauer Media public competition pages for 18 national/regional stations; closing dates are only on JS-rendered detail pages, so usually blank.")
+        "Bauer Media public competition pages for 19 national/regional stations; closing dates are only on JS-rendered detail pages, so usually blank.")
 def radio_bauer(ctx):
     comps = {}; n_ok = 0
     n = now()
