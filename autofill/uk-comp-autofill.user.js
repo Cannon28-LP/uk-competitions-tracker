@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         UK Competitions Tracker – autofill helper
 // @namespace    https://github.com/Cannon28-LP/uk-competitions-tracker
-// @version      1.0.0
+// @version      1.1.0
 // @description  Fills YOUR OWN saved details into competition entry forms you open from the tracker (or when you press Alt+Shift+F). Never submits, never ticks boxes, never touches captchas. Details stay in your browser.
 // @author       Cannon28-LP
 // @homepageURL  https://github.com/Cannon28-LP/uk-competitions-tracker/tree/main/autofill
@@ -135,7 +135,9 @@
 
   /* ---------- text helpers */
   function norm(s) {
-    return String(s || "").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_\-.\[\]\/:()*]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+    var t = String(s || "").replace(/([a-z])([A-Z])/g, "$1 $2");
+    try { t = t.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); } catch (e) { /* old browser */ }   // prénom -> prenom, città -> citta
+    return t.replace(/ß/g, "ss").replace(/[_\-.\[\]\/:()*]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
   }
   function textOf(n) { return n ? (n.textContent || "") : ""; }
 
@@ -175,7 +177,7 @@
 
   /* ---------- which fields may we touch? */
   var SKIP_TYPES = /^(hidden|password|checkbox|radio|file|submit|button|image|reset|color|range|search|number|url|month|week|time|datetime-local)$/;
-  var NEG = /(captcha|recaptcha|hcaptcha|honey|\bhp\b|bot trap|spam|coupon|promo|voucher|password|passcode|username|user name|login|log in|referr|friend|recipient|sender|company|organi[sz]ation|business|\bvat\b|\bcard\b|credit card|cvv|cvc|iban|sort code|account number|search|comment|message|answer|tie ?break|slogan|in (?:25|50|\d+) words|reason|why |describe|description|how did you hear|\botp\b|verification code|security code|confirmation code|sms code|2fa|\bpin\b|favourite|favorite|\bpets?\b|\bchild|spouse|partner|\bgift\b|team name|nickname|display name|instagram|twitter|facebook|tiktok|handle|social)/;
+  var NEG = /(captcha|recaptcha|hcaptcha|honey|\bhp\b|bot trap|spam|coupon|promo|voucher|password|passcode|username|user name|login|log in|referr|friend|recipient|sender|company|organi[sz]ation|business|\bvat\b|\bcard\b|credit card|cvv|cvc|iban|sort code|account number|search|comment|message|answer|tie ?break|slogan|in (?:25|50|\d+) words|reason|why |describe|description|how did you hear|\botp\b|verification code|security code|confirmation code|sms code|2fa|\bpin\b|favourite|favorite|\bpets?\b|\bchild|spouse|partner|\bgift\b|team name|nickname|display name|instagram|twitter|facebook|tiktok|handle|social|firma|unternehmen|entreprise|societe|bedrijf|azienda|ragione sociale|gutschein|code promo|kortingscode|codice|antwort|reponse|antwoord|risposta|kommentar|commentaire|opmerking|commento|nachricht|passwort|mot de passe|wachtwoord|benutzername|nome utente|identifiant|steuer|partita iva|fiscale|bsn|ppsn)/;
 
   function visible(el) {
     if (!el.getClientRects().length) return false;
@@ -219,28 +221,30 @@
     if (NEG.test(all) && !ac) return "";
     if (ac) return ac;
     var any = function (re) { return sig.some(function (s) { return re.test(s); }); };
-    var grp = (/birth|dob/.test(groupText(el))) ? "birth" : "";
-    // split date of birth (three selects / inputs)
-    if (any(/(birth|dob|born)/) || grp) {
+    var BIRTH = /(birth|dob|born|geburt|naissance|geboorte|nascita|nato il|nata il)/;
+    var grp = (BIRTH.test(groupText(el))) ? "birth" : "";
+    // split date of birth (three selects / inputs); also German/French/Dutch/Italian formats (TT.MM.JJJJ, JJ/MM/AAAA, GG/MM/AAAA)
+    if (any(BIRTH) || grp) {
       if (type === "date") return "dob";
-      if (any(/\b(dd|mm)\b.*\b(mm|yyyy|yy)\b|\b(yyyy|yy)\b.*\b(mm|dd)\b/)) return "dob";   // one box showing a full date format
-      if (any(/\b(day|dd|d)\b/) && !any(/\b(month|year)\b/)) return "dobd";
-      if (any(/\b(month|mm|mon)\b/)) return "dobm";
-      if (any(/\b(year|yyyy|yy)\b/)) return "doby";
-      return any(/(birth|dob|born)/) ? "dob" : "";
+      if (any(/\b(dd|mm|tt|jj|gg)\b.*\b(mm|yyyy|yy|jjjj|aaaa|aa)\b|\b(yyyy|yy|jjjj|aaaa)\b.*\b(mm|dd|tt|jj|gg)\b/)) return "dob";   // one box showing a full date format
+      if (any(/\b(day|dd|d|tag|tt|jour|dag|giorno|gg)\b/) && !any(/\b(month|year|monat|jahr|mois|annee|maand|jaar|mese|anno)\b/)) return "dobd";
+      if (any(/\b(month|mm|mon|monat|mois|maand|mese)\b/)) return "dobm";
+      if (any(/\b(year|yyyy|yy|jahr|jjjj|annee|aaaa|jaar|anno)\b/)) return "doby";
+      return any(BIRTH) ? "dob" : "";
     }
-    if (type === "email" || any(/e ?mail/)) return "email";
-    if (type === "tel" || any(/\b(phone|mobile|telephone|tel|contact number|cell)\b/)) return "phone";
-    if (any(/(post ?code|postal code|zip|\bpcode\b)/)) return "postcode";
-    if (any(/(first ?name|fore ?name|given name|\bfname\b|christian name)/)) return "first";
-    if (any(/(last ?name|sur ?name|family name|\blname\b|second name)/)) return "last";
-    if (tag === "SELECT" && any(/\b(title|salutation|honorific|prefix)\b/) && !any(/(job|position|role)/)) return "title";
-    if (any(/(address ?(line)? ?(2|two)\b|address ?2|addr ?2|line 2|\b(apartment|flat|suite|unit)\b)/)) return "addr2";
-    if (any(/(address ?(line)? ?(1|one)\b|address ?1|addr ?1|line 1|street|house (number|name)|building)/)) return "addr1";
-    if (any(/\b(town|city|locality|post town)\b/)) return "town";
-    if (any(/\b(county|state|province|region)\b/)) return "county";
+    if (type === "email" || any(/e ?mail|courriel|mailadres|posta elettronica/)) return "email";
+    if (type === "tel" || any(/\b(phone|mobile|telephone|tel|contact number|cell|telefon|telefonnummer|handy|mobil|mobilnummer|portable|telefoonnummer|mobiel|telefono|cellulare)\b/)) return "phone";
+    if (any(/(post ?code|postal code|zip|\bpcode\b|\bplz\b|postleitzahl|code postal|\bcp\b|\bcap\b|eircode)/)) return "postcode";
+    if (any(/(first ?name|fore ?name|given name|\bfname\b|christian name|vorname|prenom|voornaam|roepnaam|^nome$|\bnome\b(?! utente| completo| e cognome)|\bnombre\b)/)) return "first";
+    if (any(/(last ?name|sur ?name|family name|\blname\b|second name|nachname|familienname|nom de famille|^nom$|\bnom\b(?! complet| et prenom| prenom)|achternaam|\bcognome\b|apellidos?)/)) return "last";
+    if (tag === "SELECT" && any(/\b(title|salutation|honorific|prefix|anrede|civilite|aanhef|titolo|appellativo)\b/) && !any(/(job|position|role)/)) return "title";
+    if (any(/\b(hausnummer|hausnr|hnr|huisnummer|huisnr|numero civico|n civico|civico|numero de rue|house number|street number)\b/) && !any(/(strasse|street|straat|rue|via |toevoeging|zusatz)/)) return "houseno";
+    if (any(/(address ?(line)? ?(2|two)\b|address ?2|addr ?2|line 2|\b(apartment|flat|suite|unit)\b|adresszusatz|zusatz|complement|toevoeging|\binterno\b|\bscala\b|presso)/)) return "addr2";
+    if (any(/(address ?(line)? ?(1|one)\b|address ?1|addr ?1|line 1|street|house (number|name)|building|strasse|\bstr\b|adresse|\brue\b|numero et rue|straat|indirizzo|\bvia\b)/)) return "addr1";
+    if (any(/\b(town|city|locality|post town|suburb|ort|wohnort|stadt|ville|commune|localite|woonplaats|plaats|citta|comune|localita)\b/)) return "town";
+    if (any(/\b(county|state|province|region|territory|bundesland|departement|provincie|provincia|regione)\b/)) return "county";
     if (any(/\baddress\b/) && !any(/(e ?mail|ip |web)/)) return tag === "TEXTAREA" ? "addrblock" : "addr1";
-    if (any(/^(your |full |contact |entrant |customer |first and last )?name$/) || any(/\b(full name|your name)\b/)) return "full";
+    if (any(/^(your |full |contact |entrant |customer |first and last )?name$/) || any(/\b(full name|your name|vor und nachname|vor und zuname|nom complet|nom et prenom|volledige naam|nome e cognome|nome completo)\b/) || any(/^(name|nom|naam)$/)) return "full";
     return "";
   }
 
@@ -253,11 +257,16 @@
     el.dispatchEvent(new Event("change", { bubbles: true }));
   }
   var MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  var MONTHS_LOCAL = [   // de, fr, nl, it month names for date-of-birth selects
+    ["januar", "februar", "marz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "dezember"],
+    ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"],
+    ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"],
+    ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"]];
   function selectOption(sel, wanted) {   // wanted: array of acceptable strings (lowercase)
     var cur = sel.options[sel.selectedIndex];
     if (cur && cur.value !== "" && !/(select|choose|please|^-+$|—|pick)/i.test(cur.text) && sel.selectedIndex > 0) return false;   // user/page already chose something
     for (var i = 0; i < sel.options.length; i++) {
-      var o = sel.options[i], tv = o.value.trim().toLowerCase(), tt = o.text.trim().toLowerCase().replace(/\.$/, "");
+      var o = sel.options[i], tv = norm(o.value), tt = norm(o.text).replace(/\.$/, "");
       if (wanted.indexOf(tv) >= 0 || wanted.indexOf(tt) >= 0) { sel.selectedIndex = i; sel.dispatchEvent(new Event("input", { bubbles: true })); sel.dispatchEvent(new Event("change", { bubbles: true })); return true; }
     }
     return false;
@@ -275,13 +284,27 @@
     if (m > 0 && v.length > m) { v = v.replace(/\s+/g, ""); if (v.length > m) return ""; }
     return v;
   }
+  // "Hauptstraße 12a" / "Kerkstraat 5-2" -> {street, no}; "12 rue de la Paix" / "5 High St" -> {street, no}
+  function splitStreet(a) {
+    a = String(a || "").trim();
+    var m = a.match(/^(.*?\D)[\s,]+(\d+\s?[a-zA-Z]?(?:\s?[-\/]\s?\d+[a-zA-Z]?)?)$/);
+    if (m) return { street: m[1].replace(/[\s,]+$/, ""), no: m[2].replace(/\s+/g, "") };
+    m = a.match(/^(\d+\s?[a-zA-Z]?(?:[-\/]\d+)?)[\s,]+(.+)$/);
+    if (m) return { street: m[2], no: m[1].replace(/\s+/g, "") };
+    return { street: a, no: "" };
+  }
+  var STATE_ALIASES = { act: "australian capital territory", nsw: "new south wales", nt: "northern territory", qld: "queensland", sa: "south australia",
+    tas: "tasmania", vic: "victoria", wa: "western australia" };
   function dobParts(iso) { var p = iso.split("-"); return { y: p[0], m: p[1], d: p[2] }; }
   function dobText(el, iso) {
     var q = dobParts(iso), ph = (el.getAttribute("placeholder") || "").toLowerCase();
+    var raw = ph; try { if (el.labels) for (var i = 0; i < el.labels.length; i++) raw += " " + textOf(el.labels[i]).toLowerCase(); } catch (e) { /* ignore */ }
+    var fm = raw.match(/\b[dtjgmya]{1,4}([.\/-])[dtjgmya]{1,4}\1[dtjgmya]{1,4}\b/);   // a format like TT.MM.JJJJ in placeholder or label
+    if (fm) ph = fm[0];
     var sep = /[-.]/.test(ph.replace(/[a-z]/g, "")) ? ph.replace(/[a-z]/g, "").charAt(0) : "/";
-    if (/^m+[\/.-]d+/.test(ph)) return q.m + sep + q.d + sep + q.y;
-    if (/^y+[\/.-]/.test(ph)) return q.y + sep + q.m + sep + q.d;
-    if (/yy$/.test(ph) && !/yyyy$/.test(ph)) return q.d + sep + q.m + sep + q.y.slice(2);
+    if (/^m+[\/.-][dtjg]+/.test(ph)) return q.m + sep + q.d + sep + q.y;
+    if (/^(y{4}|j{4}|a{4})[\/.-]/.test(ph)) return q.y + sep + q.m + sep + q.d;
+    if (/(?:^|[^a-z])(yy|jj|aa)$/.test(ph) && !/(yyyy|jjjj|aaaa)$/.test(ph)) return q.d + sep + q.m + sep + q.y.slice(2);
     return q.d + sep + q.m + sep + q.y;
   }
 
@@ -293,7 +316,7 @@
     var v = "";
     switch (kind) {
       case "title": if (!D.title) return false;
-        if (isSel) { var t = D.title.toLowerCase().replace(/\.$/, ""); if (!selectOption(el, [t, t + "."])) return false; mark(el); return true; }
+        if (isSel) { var t = norm(D.title).replace(/\.$/, ""); if (!selectOption(el, titleWanted(t))) return false; mark(el); return true; }
         v = D.title; break;
       case "first": v = D.first; break;
       case "last": v = D.last; break;
@@ -301,11 +324,15 @@
       case "email": v = D.email; break;
       case "phone": v = D.phone; break;
       case "postcode": v = D.postcode ? D.postcode.toUpperCase() : ""; break;
-      case "addr1": v = D.addr1; break;
+      case "addr1": v = D._split ? splitStreet(D.addr1).street : D.addr1; break;
+      case "houseno": v = splitStreet(D.addr1).no; break;
       case "addr2": v = D.addr2; break;
       case "town": v = D.town; break;
       case "county":
-        if (isSel) { if (!D.county) return false; if (!selectOption(el, [D.county.toLowerCase()])) return false; mark(el); return true; }
+        if (isSel) { if (!D.county) return false; var cw = norm(D.county), cws = [cw];
+          if (STATE_ALIASES[cw]) cws.push(STATE_ALIASES[cw]);
+          Object.keys(STATE_ALIASES).forEach(function (k) { if (STATE_ALIASES[k] === cw) cws.push(k); });
+          if (!selectOption(el, cws)) return false; mark(el); return true; }
         v = D.county; break;
       case "street": v = [D.addr1, D.addr2].filter(Boolean).join(", "); break;
       case "addrblock": v = [D.addr1, D.addr2, D.town, D.county, D.postcode && D.postcode.toUpperCase()].filter(Boolean).join("\n"); break;
@@ -316,7 +343,8 @@
         if (!D.dob) return false;
         var q = dobParts(D.dob), wanted;
         if (kind === "dobd") wanted = [String(+q.d), q.d];
-        else if (kind === "dobm") { var mn = MONTHS[+q.m - 1]; wanted = [String(+q.m), q.m, mn, mn.slice(0, 3)]; }
+        else if (kind === "dobm") { var mn = MONTHS[+q.m - 1]; wanted = [String(+q.m), q.m, mn, mn.slice(0, 3)];
+          MONTHS_LOCAL.forEach(function (L) { var x = L[+q.m - 1]; wanted.push(x, x.slice(0, 3), x.slice(0, 4)); }); }
         else wanted = [q.y, q.y.slice(2)];
         if (isSel) { if (!selectOption(el, wanted)) return false; mark(el); return true; }
         v = wanted[kind === "dobm" ? 1 : 0]; if (kind === "doby" && el.maxLength === 2) v = q.y.slice(2);
@@ -332,16 +360,26 @@
     return true;
   }
 
+  // local equivalents, so "Herr" also matches "Herr." and "M." also matches "Monsieur"
+  var TITLE_EQ = [["mr", "herr", "m", "monsieur", "dhr", "de heer", "heer", "sig", "signor", "signore"], ["mrs", "ms", "miss", "frau", "mme", "madame", "mevr", "mevrouw", "sig ra", "sigra", "signora"],
+    ["mx", "divers"], ["dr", "dott", "dottore"]];
+  function titleWanted(t) {
+    var w = [t, t + "."];
+    TITLE_EQ.forEach(function (g) { if (g.indexOf(t) >= 0 && t !== "ms" && t !== "miss" && t !== "mrs") g.forEach(function (x) { w.push(x, x + "."); }); });
+    if (["frau", "mme", "madame", "mevr", "mevrouw", "sig ra", "sigra", "signora"].indexOf(t) >= 0) ["frau", "mme", "madame", "mevr", "mevrouw", "signora", "sig ra", "sigra", "mrs", "ms"].forEach(function (x) { w.push(x, x + "."); });
+    return w;
+  }
+
   /* title given as radio buttons (Mr / Mrs / Miss…): the one place we select a radio, and only for the title group */
   function fillTitleRadios(D) {
     if (!D.title) return 0;
-    var want = D.title.toLowerCase().replace(/\.$/, ""), n = 0, groups = {};
+    var want = norm(D.title).replace(/\.$/, ""), wants = titleWanted(want).map(function (x) { return x.replace(/\./g, "").trim(); }), n = 0, groups = {};
     var rs = document.querySelectorAll("input[type=radio]");
     for (var i = 0; i < rs.length; i++) {
       var r = rs[i];
       if (r.disabled || !r.name || !visible(r)) continue;
       var nm = norm(r.name + " " + (r.getAttribute("autocomplete") || ""));
-      if (!/\b(title|salutation|honorific|prefix)\b/.test(nm) || /(job|position|role)/.test(nm)) continue;
+      if (!/\b(title|salutation|honorific|prefix|anrede|civilite|aanhef|titolo|appellativo|gender|geschlecht|sexe)\b/.test(nm) || /(job|position|role)/.test(nm)) continue;
       (groups[r.name] = groups[r.name] || []).push(r);
     }
     Object.keys(groups).forEach(function (g) {
@@ -349,7 +387,7 @@
       if (grp.some(function (r) { return r.checked; })) return;
       for (var j = 0; j < grp.length; j++) {
         var lab = (labelTexts(grp[j])[0] || norm(grp[j].value)).replace(/\./g, "").trim();
-        if (lab === want || norm(grp[j].value) === want) { grp[j].click(); mark(grp[j]); n++; break; }
+        if (wants.indexOf(lab) >= 0 || wants.indexOf(norm(grp[j].value).replace(/\./g, "")) >= 0) { grp[j].click(); mark(grp[j]); n++; break; }
       }
     });
     return n;
@@ -358,11 +396,13 @@
   function fillPage() {
     var D = loadDetails();
     if (!Object.keys(D).length) return { n: 0, noDetails: true };
-    var n = 0, els = collect(document, []);
-    for (var i = 0; i < els.length; i++) {
-      var el = els[i];
-      if (!fillable(el) || filledSet.has(el)) continue;
-      var kind = classify(el);
+    var n = 0, els = collect(document, []), kinds = [];
+    for (var i = 0; i < els.length; i++) kinds.push(fillable(els[i]) && !filledSet.has(els[i]) ? classify(els[i]) : "");
+    var hasFirst = kinds.indexOf("first") >= 0;
+    D = Object.assign({}, D, { _split: kinds.indexOf("houseno") >= 0 });
+    for (i = 0; i < els.length; i++) {
+      var el = els[i], kind = kinds[i];
+      if (kind === "full" && hasFirst && signalsOf(el).some(function (x) { return /^(name|nom|naam|nome)$/.test(x); })) kind = "last";
       if (kind && fillOne(el, kind, D)) n++;
     }
     n += fillTitleRadios(D);
