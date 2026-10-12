@@ -13,6 +13,16 @@ HINT = re.compile(r"((?:answer\s+)?hint\s*[:\-–]\s*[^.\n]{5,160}|(?:the\s+)?an
 BAD = re.compile(r"(cookie|newsletter|marketing|privacy|subscribe|password|email address|consent|captcha|are you (?:over|18)|"
                  r"how did you hear|would you like|agree|terms|do you want|robot)", re.I)
 
+YOU = re.compile(r"\b(you|your|you're|u|uw|je|jij|du|dein|deine|ihr|sie|vous|votre|tu|ton|ta|voi|tuo|tua)\b", re.I)
+MKT = re.compile(r"(recevoir|actualit|partenaire|newsletter|nieuwsbrief|werbung|angebote|offerte|aanbieding|abonne|abonnement)", re.I)
+
+def _quizlike(q, name=""):
+    """A real entry question, not a survey/marketing prompt: explicit Q:/Question prefix or a quiz-named field,
+    or a factual question (starts with a question word) that is not about the entrant ('How often do you...')."""
+    if MKT.search(q): return False
+    if re.match(r"^(q\s*[:.]|question\b)", q, re.I) or re.search(r"(answer|question|quiz|skill|\bq\d)", name or "", re.I): return True
+    return bool(QWORD.match(q)) and not YOU.search(q)
+
 def _clean(t): return re.sub(r"\s+", " ", t or "").strip()
 
 def extract(html):
@@ -39,7 +49,7 @@ def extract(html):
         for prev in node.find_all_previous(string=True, limit=80):
             t = _clean(prev)
             if t.endswith("?") and 8 <= len(t) <= 220 and not BAD.search(t): cand = t; break
-        if cand: q, opts = cand, labels; break
+        if cand and _quizlike(cand, name): q, opts = cand, labels; break
     # 2) select menus (WooCommerce 'answer' dropdowns)
     if not q:
         for sel in s.select("select"):
@@ -50,7 +60,7 @@ def extract(html):
             if 2 <= len(o) <= 6:
                 for prev in sel.find_all_previous(string=True, limit=60):
                     t = _clean(prev)
-                    if t.endswith("?") and 8 <= len(t) <= 220 and not BAD.search(t): q, opts = t, o[:6]; break
+                    if t.endswith("?") and 8 <= len(t) <= 220 and not BAD.search(t) and _quizlike(t, nm): q, opts = t, o[:6]; break
             if q: break
     text = _clean(s.get_text(" "))
     # 3) explicit 'Question:' / 'Q:' text (free-text answers)

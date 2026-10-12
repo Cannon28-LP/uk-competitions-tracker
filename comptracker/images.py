@@ -48,5 +48,7 @@ def apply(ctx, items, budget_s=120, max_new=120):
             if r is None: st["pending"] += 1; continue
             c = dict(img=img, qa=qa_d, at=now().isoformat(timespec="seconds")); ctx.cache_put(key, c)
         if need_img and c.get("img"): it["image"] = c["img"]; st["found"] += 1
-        if need_qa and c.get("qa"): it["qa"] = c["qa"]; st["qa"] += 1
+        cq = c.get("qa")
+        if cq and cq.get("q") and not qa._quizlike(cq["q"]): cq = None          # cached by an older, looser parser
+        if need_qa and cq: it["qa"] = cq; st["qa"] += 1
     return st
