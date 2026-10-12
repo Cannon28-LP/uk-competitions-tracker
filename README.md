@@ -33,6 +33,26 @@ Sources: Loquax (+ Win-a-House), ThePrizeFinder, Competition Showroom (+ BOTB an
 
 **Deliberately not collected:** talkSPORT (its robots.txt disallows automated access to its competitions pages). Sources that block the CI runners (e.g. FindCompetitions returns HTTP 403 from GitHub's IP ranges) are shown as stale/down on the page rather than silently served from old data (see below).
 
+## Countries
+
+Besides the UK, the tracker collects competitions for **Germany, France, the Netherlands, Ireland, Italy, Australia and New Zealand**
+(the EU's biggest comping scenes, plus AU/NZ). Each country has its own sources (`comptracker/src_intl.py`), its own data file
+(`data/uk.json`, `data/de.json`, …; `competitions.json` is still written for the UK), its own currency, time zone, regulator text,
+safety tips, scam-reporting links and address format in *My details*. Titles stay in the original language; category matching uses an
+internal glossary (`comptracker/gloss.py`).
+
+**One country per visitor, no switcher.** The page picks the country **on the device** from the browser's time zone
+(e.g. `Europe/Berlin` → Germany, any `Australia/*` → Australia); only if the zone is hidden (UTC) does it use the browser language's
+region (`de-DE` → Germany). Anything else → UK. There is no IP lookup and nothing is sent anywhere. Limits: a VPN does not change it
+(time zone is local), a traveller sees the list for the time zone their device is set to, and countries sharing a zone we don't
+cover (e.g. Austria, Belgium) get the UK list.
+
+**Testing other countries** (test-only; the site has no URL parameter or switcher): `python tests/country/run_country_test.py DATA_DIR`
+emulates each country's time zone/locale in a headless Chrome and checks the right file loads. Local-language autofill:
+`python tests/autofill/run_local_forms_test.py`.
+
+The hourly workflow runs one collector job per country in parallel (matrix); a failed country keeps its previous file and doesn't block the others.
+
 ## ⚠️ Safety & disclaimer
 - **18+ only.** Nothing here enters competitions for you.
 - Paid prize competitions/draws are generally **not licensed or regulated by the Gambling Commission**. Play responsibly – set a budget; help is available from [BeGambleAware](https://www.begambleaware.org).

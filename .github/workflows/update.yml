@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Debug: run only these sources (comma-separated exact names). Leave empty for a normal full run."
+        description: "Debug (UK job only): run only these sources (comma-separated exact names). Leave empty for a normal full run."
         required: false
         default: ""
 
-# never run two collectors at once (a full run takes ~10-15 min); let a running one finish
+# never run two hourly runs at once (each country job takes ~2-15 min, all in parallel); let a running one finish
 concurrency:
   group: update-competitions
   cancel-in-progress: false
@@ -25,14 +25,21 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  # One collector job per country, in parallel. Each keeps its own state file on the `data` branch
+  # (UK: state.json, as before; others: state-<cc>.json). A failed country never blocks the others:
+  # the publish job keeps that country's previous data file.
   collect:
     runs-on: ubuntu-24.04      # pinned: `ubuntu-latest` moves to Ubuntu 26 on 19 Oct 2026
-    timeout-minutes: 45
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        country: [uk, de, fr, nl, ie, it, au, nz]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Checkout data branch (state.json + last competitions.json)
+      - name: Checkout data branch (state + last data)
         uses: actions/checkout@v7
         with:
           ref: data
@@ -46,24 +53,71 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run collector
+      - name: Run collector (${{ matrix.country }})
         env:
           ONLY: ${{ github.event.inputs.only }}
+          CC: ${{ matrix.country }}
         run: |
           args=()
-          if [ -n "$ONLY" ]; then
+          if [ -n "$ONLY" ] && [ "$CC" = "uk" ]; then
             IFS=',' read -r -a names <<< "$ONLY"
             args=(--only "${names[@]}")
           fi
-          python -u -m comptracker.ci --state databr/state.json --out _site "${args[@]}"
+          if [ "$CC" = "uk" ]; then st=databr/state.json; else st="databr/state-$CC.json"; fi
+          mkdir -p out
+          python -u -m comptracker.ci --country "$CC" --state "$st" --out out "${args[@]}"
+          cp "$st" out/
+          ls -la out
 
-      - name: Assemble site
+      - uses: actions/upload-artifact@v7
+        with:
+          name: data-${{ matrix.country }}
+          path: out/
+          retention-days: 1
+
+  publish:
+    needs: collect
+    if: ${{ !cancelled() }}      # publish whatever countries succeeded; failed ones keep last hour's file
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Checkout data branch
+        uses: actions/checkout@v7
+        with:
+          ref: data
+          path: databr
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: data-*
+          path: dl
+        continue-on-error: true
+
+      - name: Merge country results + assemble site
         run: |
+          mkdir -p databr/data _site/data
+          for cc in uk de fr nl ie it au nz; do
+            d="dl/data-$cc"
+            if [ -s "$d/$cc.json" ]; then
+              cp "$d/$cc.json" databr/data/
+              for f in "$d"/state*.json; do [ -f "$f" ] && cp "$f" databr/; done
+              echo "$cc: updated"
+            else
+              echo "::warning::$cc collector failed this run - keeping its previous data file"
+            fi
+            [ -f "databr/data/$cc.json" ] && cp "databr/data/$cc.json" _site/data/
+          done
+          # UK: also the original competitions.json (old links and older page versions)
+          if [ -f databr/data/uk.json ]; then cp databr/data/uk.json databr/competitions.json; fi
+          [ -f databr/competitions.json ] && cp databr/competitions.json _site/competitions.json
+          [ -f _site/data/uk.json ] || { [ -f _site/competitions.json ] && cp _site/competitions.json _site/data/uk.json; }
           cp web/index.html _site/index.html
           mkdir -p _site/autofill && cp autofill/uk-comp-autofill.user.js _site/autofill/   # also downloadable from the Pages site
           touch _site/.nojekyll
-          cp _site/competitions.json databr/competitions.json
-          ls -la _site
+          ls -la _site _site/data
 
       - name: Commit data (single squashed commit on `data` branch, so history never grows)
         working-directory: databr
@@ -106,7 +160,7 @@ jobs:
           if [ -z "$n" ]; then echo "::warning::No scheduled (cron) run has been seen yet"; fi
 
   deploy:
-    needs: collect
+    needs: publish
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:
