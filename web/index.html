@@ -213,13 +213,13 @@ th{color:var(--tx3);font-weight:600}
 <div class="wrap">
 <header>
   <div class="brand">
-    <h1>🎟️ UK Prize Competition Tracker</h1>
+    <h1 id="h1">🎟️ UK Prize Competition Tracker</h1>
     <div class="hd-r"><div class="stats" id="stats"><span class="pill"><span class="dot"></span><span id="upd">Loading…</span></span></div>
     <button type="button" class="pill mdbtn" id="mdBtn" title="Save your details in this browser to copy or auto-fill entry forms">👤 My details</button></div>
   </div>
   <details class="notice">
-    <summary><span><strong>18+ only.</strong> We never submit entries for you. Paid prize draws are usually <strong>not regulated by the Gambling Commission</strong>, so set a budget.</span> <span class="more">Stay-safe tips</span></summary>
-    <div class="tips">
+    <summary><span id="noticeTxt"><strong>18+ only.</strong> We never submit entries for you. Paid prize draws are usually <strong>not regulated by the Gambling Commission</strong>, so set a budget.</span> <span class="more">Stay-safe tips</span></summary>
+    <div class="tips" id="tips">
       <ul>
         <li>Never pay a fee, “postage”, “processing” or “tax” to <em>claim</em> a prize. Genuine free entries never need card details.</li>
         <li>Check the promoter is named and has Terms &amp; Conditions, a UK address or company number, and a free postal entry route if tickets are sold.</li>
@@ -262,13 +262,13 @@ th{color:var(--tx3);font-weight:600}
     <div class="grp grp-t">
     <button type="button" class="toggle" data-t="fresh" aria-pressed="false">🆕 New today</button>
     <button type="button" class="toggle" data-t="ending" aria-pressed="false">⏳ Ends within 24h</button>
-    <button type="button" class="toggle" data-t="radio" aria-pressed="false">📻 Radio</button>
+    <button type="button" class="toggle" data-t="radio" aria-pressed="false" id="radioBtn">📻 Radio</button>
     <button type="button" class="toggle" data-t="pics" aria-pressed="false">🖼️ Has picture</button>
     </div>
     <div class="grp grp-f">
-    <label class="price" id="prizeBox" title="Prize value range. Use the tick box to keep competitions whose prize value isn't stated.">Prize £<input id="pmin" type="number" inputmode="numeric" min="0" step="1" placeholder="min" aria-label="Minimum prize value in pounds">–<input id="pmax" type="number" inputmode="numeric" min="0" step="1" placeholder="max" aria-label="Maximum prize value in pounds"></label>
+    <label class="price" id="prizeBox" title="Prize value range. Use the tick box to keep competitions whose prize value isn't stated."><span class="cs">Prize £</span><input id="pmin" type="number" inputmode="numeric" min="0" step="1" placeholder="min" aria-label="Minimum prize value in pounds">–<input id="pmax" type="number" inputmode="numeric" min="0" step="1" placeholder="max" aria-label="Maximum prize value in pounds"></label>
     <label class="price chk" id="unkBox" title="Many listings don't state a prize value. Keep them in the results while a prize range is set (on by default)."><input type="checkbox" id="unk" checked aria-label="Include competitions with unknown prize value"> incl. unknown value</label>
-    <label class="price" id="entryBox" title="Highest entry price you'll pay. Free entries are always included; paid entries without a listed price are hidden. Use 0 for free only.">Entry up to £<input id="emax" type="number" inputmode="decimal" min="0" step="0.01" placeholder="any" aria-label="Maximum entry price in pounds"></label>
+    <label class="price" id="entryBox" title="Highest entry price you'll pay. Free entries are always included; paid entries without a listed price are hidden. Use 0 for free only."><span class="cs">Entry up to £</span><input id="emax" type="number" inputmode="decimal" min="0" step="0.01" placeholder="any" aria-label="Maximum entry price in pounds"></label>
     <select id="safety" aria-label="Safety rating">
       <option value="">Any safety rating</option>
       <option value="nocaution">Hide “Caution”</option>
@@ -289,6 +289,7 @@ th{color:var(--tx3);font-weight:600}
 
 <footer>
   <details><summary>Sources &amp; collector status</summary><div class="tablewrap" id="srcs"></div></details>
+  <p id="ccNote" class="ccnote" hidden></p>
   <p>Collected politely from public pages every hour (robots.txt respected, no logins, nothing entered by the collector). Prize values and closing times are as the source states; “~” means approximate. Pictures are shown from the source sites. Always confirm details on the promoter's own page. Help with gambling: <a href="https://www.begambleaware.org" target="_blank" rel="noopener noreferrer">BeGambleAware</a>. · <a href="#" id="ftDetails">Autofill helper</a> · <a href="https://github.com/Cannon28-LP/uk-competitions-tracker" target="_blank" rel="noopener noreferrer">Source on GitHub</a></p>
 </footer>
 </div>
@@ -317,6 +318,35 @@ th{color:var(--tx3);font-weight:600}
 
 <script>
 "use strict";
+/* ---------- country (one list per visitor, no switcher) ----------
+   Decided ON THIS DEVICE from the browser's time zone, then its language region; unknown -> UK. No IP lookup, nothing sent.
+   Testing other countries: emulate a time zone / locale (see tests/country/run_country_test.py); there is deliberately no URL switch. */
+const CC_META = {
+  uk:{tz:"Europe/London", sym:"£", sub:"p", loc:"en-GB", adj:"UK", name:"UK"},
+  de:{tz:"Europe/Berlin", sym:"€", loc:"en-IE", adj:"German", name:"Germany"},
+  fr:{tz:"Europe/Paris", sym:"€", loc:"en-IE", adj:"French", name:"France"},
+  nl:{tz:"Europe/Amsterdam", sym:"€", loc:"en-IE", adj:"Dutch", name:"Netherlands"},
+  ie:{tz:"Europe/Dublin", sym:"€", loc:"en-IE", adj:"Irish", name:"Ireland"},
+  it:{tz:"Europe/Rome", sym:"€", loc:"en-IE", adj:"Italian", name:"Italy"},
+  au:{tz:"Australia/Sydney", sym:"$", loc:"en-AU", adj:"Sydney", name:"Australia"},
+  nz:{tz:"Pacific/Auckland", sym:"$", loc:"en-NZ", adj:"NZ", name:"New Zealand"}
+};
+function detectCountry(){
+  let tz = "";
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { tz = ""; }
+  const TZC = {"Europe/London":"uk","Europe/Belfast":"uk","Europe/Guernsey":"uk","Europe/Jersey":"uk","Europe/Isle_of_Man":"uk","GB":"uk",
+    "Europe/Dublin":"ie","Eire":"ie","Europe/Berlin":"de","Europe/Busingen":"de","Europe/Paris":"fr","Europe/Amsterdam":"nl",
+    "Europe/Rome":"it","Europe/San_Marino":"it","Europe/Vatican":"it","Pacific/Auckland":"nz","Pacific/Chatham":"nz","NZ":"nz"};
+  if (TZC[tz]) return TZC[tz];
+  if (/^Australia\//.test(tz) || tz === "Antarctica/Macquarie") return "au";
+  if (tz && !/^(UTC|Etc\/|GMT)/.test(tz)) return "uk";           // a known zone elsewhere in the world: default list
+  const RC = {GB:"uk", UK:"uk", IE:"ie", DE:"de", FR:"fr", NL:"nl", IT:"it", AU:"au", NZ:"nz"};
+  for (const l of (navigator.languages || [navigator.language || ""])){   // zone hidden (e.g. privacy mode reports UTC): use language region
+    const m = /^[a-z]{2,3}[-_]([A-Za-z]{2})\b/.exec(l || ""); if (m && RC[m[1].toUpperCase()]) return RC[m[1].toUpperCase()];
+  }
+  return "uk";
+}
+const CC = detectCountry(), CM = CC_META[CC];
 const BUDGET = 30, PAGE = 48;
 const CAT_META = {
   "Cars":["🚗",215],"Motorbikes":["🏍️",15],"Boats":["🚤",195],"Holidays/Travel":["✈️",185],"Money/Cash":["💷",140],
@@ -330,23 +360,24 @@ const priceSet = () => st.pmin != null || st.pmax != null;
 let DATA = null, ITEMS = [], BYID = new Map(), LIST = [], shown = 0, cdEls = [];
 
 /* ---------- formatting ---------- */
-const TZ = "Europe/London";
+const TZ = CM.tz, TZL = CM.adj + " time";
 const fDateTime = new Intl.DateTimeFormat("en-GB",{timeZone:TZ,weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const fDate = new Intl.DateTimeFormat("en-GB",{timeZone:TZ,weekday:"short",day:"numeric",month:"short"});
 const fShort = new Intl.DateTimeFormat("en-GB",{timeZone:TZ,day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl = u => /^https?:\/\//i.test(u || "") ? u : "";
 const num = n => Number(n).toLocaleString("en-GB");
-function gbp(n){
+const CUR = CM.sym;
+function gbp(n){   // money in the visitor's country currency (name kept from the UK-only version)
   if (n == null) return "";
-  if (n >= 1e6) return "£" + (n / 1e6).toLocaleString("en-GB", {maximumFractionDigits:2}) + "m";
-  if (n >= 1e5) return "£" + Math.round(n / 1e3).toLocaleString("en-GB") + "k";
+  if (n >= 1e6) return CUR + (n / 1e6).toLocaleString("en-GB", {maximumFractionDigits:2}) + "m";
+  if (n >= 1e5) return CUR + Math.round(n / 1e3).toLocaleString("en-GB") + "k";
   const pence = n < 10 && n % 1 !== 0;
-  return "£" + Number(n).toLocaleString("en-GB", {maximumFractionDigits: pence ? 2 : 0, minimumFractionDigits: pence ? 2 : 0});
+  return CUR + Number(n).toLocaleString("en-GB", {maximumFractionDigits: pence ? 2 : 0, minimumFractionDigits: pence ? 2 : 0});
 }
 function price(it){
   if (it.entry_type === "free") return "Free";
-  if (it.entry_cost > 0) return it.entry_cost < 1 ? Math.round(it.entry_cost * 100) + "p" : gbp(it.entry_cost);
+  if (it.entry_cost > 0) return it.entry_cost < 1 && CM.sub ? Math.round(it.entry_cost * 100) + CM.sub : gbp(it.entry_cost);
   return it.entry_type === "paid" ? "Paid" : "";
 }
 function left(ms){
@@ -362,8 +393,8 @@ function left(ms){
 function closesLong(it){
   if (!it._cl) return "Not listed by the source";
   const d = new Date(it._cl);
-  if (it.closes_precision === "date") return fDate.format(d) + ", end of day (UK time)";
-  return (it.closes_precision === "approx" ? "About " : "") + fDateTime.format(d) + " (UK time)";
+  if (it.closes_precision === "date") return fDate.format(d) + ", end of day (" + TZL + ")";
+  return (it.closes_precision === "approx" ? "About " : "") + fDateTime.format(d) + " (" + TZL + ")";
 }
 
 /* ---------- data prep (once per load) ---------- */
@@ -489,8 +520,8 @@ function detailsHtml(it){
   let bud = "";
   if (it.entry_type === "paid" && it.entry_cost > 0){
     const n = Math.floor(BUDGET / it.entry_cost);
-    bud = `<div class="budget">A £${BUDGET}/month budget buys about ${num(n)} ${n === 1 ? "entry" : "entries"} here${it.entry_cost >= BUDGET ? " (over budget)" : ""}.</div>`;
-  } else if (it.entry_type === "paid") bud = `<div class="budget">Paid entry: keep it within your £${BUDGET}/month budget.</div>`;
+    bud = `<div class="budget">A ${CUR}${BUDGET}/month budget buys about ${num(n)} ${n === 1 ? "entry" : "entries"} here${it.entry_cost >= BUDGET ? " (over budget)" : ""}.</div>`;
+  } else if (it.entry_type === "paid") bud = `<div class="budget">Paid entry: keep it within your ${CUR}${BUDGET}/month budget.</div>`;
   const flags = sf.flags.map(f => `<li class="${esc(f.sev)}">${esc(f.text)}</li>`).join("");
   const pos = sf.positives.map(p => `<li class="pos">${esc(p)}</li>`).join("");
   const links = (it.all_links && it.all_links.length) ? it.all_links : it.sources.map(s => ({source: s, url: (it.source_links || {})[s], promoter: ""}));
@@ -674,11 +705,30 @@ if ("IntersectionObserver" in window){
 window.addEventListener("scroll", () => $("totop").classList.toggle("show", window.scrollY > 1500), {passive: true});
 $("totop").addEventListener("click", () => window.scrollTo({top: 0, behavior: "smooth"}));
 
+/* ---------- country texts (from this country's own data file) ---------- */
+function applyCountry(){
+  const c = DATA.country; if (!c || CC === "uk") { radioVis(); return; }   // UK keeps the original markup
+  document.title = c.name + " Prize Competition Tracker";
+  $("h1").textContent = "🎟️ " + c.flag + " " + c.name + " Prize Competition Tracker";
+  $("noticeTxt").innerHTML = "<strong>18+ only.</strong> We never submit entries for you. " + esc(c.paid_note || "") + ", so set a budget.";
+  const links = (c.report || []).filter(x => safeUrl(x[1])).map(x => `<a href="${esc(x[1])}" target="_blank" rel="noopener noreferrer">${esc(x[0])} ↗</a>`).join("");
+  $("tips").innerHTML = `<ul><li>Never pay a fee, “postage”, “processing” or “tax” to <em>claim</em> a prize. Genuine free entries never need card details.</li>` +
+    (c.tips || []).map(t => `<li>${esc(t)}</li>`).join("") + `<li>${esc(c.regulator || "")}</li><li><b>Who can enter:</b> ${esc(c.eligibility || "")}</li>` +
+    `<li>Titles are shown in the original language, as the source lists them. The <b>Verified / Unverified / Caution</b> badge is an automated guide, <b>not a guarantee</b>, so always read the promoter's terms.</li></ul><div class="links">${links}</div>`;
+  radioVis();
+}
+function radioVis(){ const any = ITEMS.some(it => it._radio); $("radioBtn").hidden = !any; if (!any) st.t.delete("radio"); }
+document.querySelectorAll(".cs").forEach(x => { x.textContent = x.textContent.replace("£", CUR); });
+["pmin", "pmax", "emax"].forEach(id => { const e = $(id); e.setAttribute("aria-label", e.getAttribute("aria-label").replace("pounds", CC === "uk" ? "pounds" : CC === "au" || CC === "nz" ? "dollars" : "euros")); });
+$("ccNote").hidden = false;
+$("ccNote").textContent = "Showing " + (CC === "uk" ? "UK" : CM.name) + " competitions. The country is chosen on your device from your browser's time zone (or language), with no location or IP lookup; it isn't sent anywhere. Times are " + TZL + ".";
+
 /* ---------- load ---------- */
 async function load(isRefresh){
   let d;
   try {
-    const r = await fetch("competitions.json?t=" + Date.now(), {cache: "no-store"});
+    let r = await fetch("data/" + CC + ".json?t=" + Date.now(), {cache: "no-store"});
+    if (!r.ok && CC === "uk") r = await fetch("competitions.json?t=" + Date.now(), {cache: "no-store"});   // older deploys
     if (!r.ok) throw new Error("HTTP " + r.status);
     d = await r.json();
   } catch (e) {
@@ -686,7 +736,7 @@ async function load(isRefresh){
     return;
   }
   if (isRefresh && DATA && d.last_updated === DATA.last_updated) return;   // nothing new: leave the page alone
-  DATA = d; prep();
+  DATA = d; prep(); applyCountry();
   const lu = DATA.last_updated ? new Date(DATA.last_updated) : null;
   $("upd").textContent = lu ? "Updated " + fShort.format(lu) : "No data yet";
   const newToday = ITEMS.filter(isNew).length;
@@ -725,12 +775,24 @@ setInterval(() => load(true), 10 * 60 * 1000);
    PRIVACY: nothing here is sent anywhere. Details live in this browser's localStorage only. The optional userscript receives them
    through window.postMessage in this same tab (never a URL, never the network). Nothing about a visitor is hardcoded or logged. */
 (function(){
-  const KEY = "ukct.details.v1", PKEY = "ukct.prefs.v1";
+  const KEY = CC === "uk" ? "ukct.details.v1" : "ukct.details.v1." + CC, PKEY = "ukct.prefs.v1";
+  const EN_T = ["", "Mr", "Mrs", "Miss", "Ms", "Mx", "Dr", "Prof"];
+  // local address formats: label overrides, hidden fields (null), title lists, postcode hint
+  const AF = {
+    uk: {},
+    ie: {postcode: "Eircode", pc: "e.g. D02 X285"},
+    de: {T: ["", "Herr", "Frau", "Divers", "Dr."], addr1: "Street + house no. (Straße Hausnr.)", addr2: "Address extra (Adresszusatz)", town: "Town (Ort)", county: null, postcode: "Postcode (PLZ)", pc: "5 digits"},
+    fr: {T: ["", "M.", "Mme"], last: "Surname (nom)", first: "First name (prénom)", addr1: "No. + street (numéro et rue)", addr2: "Address extra (complément)", town: "Town (ville)", county: null, postcode: "Postcode (code postal)", pc: "5 digits"},
+    nl: {T: ["", "Dhr.", "Mevr."], addr1: "Street + house no. (straat huisnummer)", addr2: "Addition (toevoeging)", town: "Town (woonplaats)", county: null, postcode: "Postcode", pc: "1234 AB"},
+    it: {T: ["", "Sig.", "Sig.ra", "Dott.", "Dott.ssa"], first: "First name (nome)", last: "Surname (cognome)", addr1: "Street + no. (via, civico)", addr2: "Address extra (scala/interno)", town: "Town (comune)", county: "Province (provincia, e.g. MI)", postcode: "Postcode (CAP)", pc: "5 digits"},
+    au: {addr2: "Address line 2", town: "Suburb / town", county: "State / territory", S: ["", "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"], pc: "4 digits"},
+    nz: {addr2: "Suburb", town: "Town / city", county: null, pc: "4 digits"}
+  }[CC] || {};
   const FIELDS = [
     ["title", "Title", "select"], ["first", "First name"], ["last", "Surname"], ["email", "Email", "email"], ["phone", "Phone", "tel"],
     ["addr1", "Address line 1"], ["addr2", "Address line 2"], ["town", "Town / city"], ["county", "County"], ["postcode", "Postcode"], ["dob", "Date of birth", "date"]
-  ];
-  const TITLES = ["", "Mr", "Mrs", "Miss", "Ms", "Mx", "Dr", "Prof"];
+  ].filter(([k]) => AF[k] !== null).map(([k, l, t]) => [k, AF[k] || l, k === "county" && AF.S ? "state" : t]);
+  const TITLES = AF.T || EN_T;
   let store = null;
   try { store = window.localStorage; store.getItem("x"); } catch (e) { store = null; }
   const load = k => { try { return JSON.parse(store.getItem(k) || "{}") || {}; } catch (e) { return {}; } };
@@ -745,7 +807,7 @@ setInterval(() => load(true), 10 * 60 * 1000);
   /* --- userscript bridge (same tab only) --- */
   const usPresent = () => !!document.documentElement.getAttribute("data-ukct-autofill");
   const post = m => window.postMessage(Object.assign({ukct: "v1", from: "page"}, m), location.origin);
-  function syncScript(){ if (usPresent()) post({type: "details", details: clean()}); }
+  function syncScript(){ if (usPresent()) post({type: "details", details: clean(), country: CC}); }
   function renderUs(){
     $("mdUs").innerHTML = usPresent()
       ? `<span class="tagok">✔ Userscript detected</span> – your details are synced to it automatically.`
@@ -762,7 +824,8 @@ setInterval(() => load(true), 10 * 60 * 1000);
   rows.innerHTML = FIELDS.map(([k, label, type]) => {
     const inp = type === "select"
       ? `<select id="md_${k}" data-k="${k}" autocomplete="off">${TITLES.map(t => `<option value="${t}">${t || "—"}</option>`).join("")}</select>`
-      : `<input id="md_${k}" data-k="${k}" type="${type === "email" || type === "tel" || type === "date" ? type : "text"}" autocomplete="off" autocapitalize="${k === "email" ? "off" : "words"}" spellcheck="false" maxlength="120">`;
+      : type === "state" ? `<select id="md_${k}" data-k="${k}" autocomplete="off">${AF.S.map(t => `<option value="${t}">${t || "—"}</option>`).join("")}</select>`
+      : `<input id="md_${k}" data-k="${k}" type="${type === "email" || type === "tel" || type === "date" ? type : "text"}" autocomplete="off" autocapitalize="${k === "email" ? "off" : "words"}" spellcheck="false" maxlength="120"${k === "postcode" && AF.pc ? ` placeholder="${AF.pc}"` : ""}>`;
     return `<div class="row"><label for="md_${k}">${label}</label>${inp}<button type="button" class="cp" data-copy="${k}" aria-label="Copy ${label}">Copy</button></div>`;
   }).join("");
   function fillForm(){ FIELDS.forEach(([k]) => { $("md_" + k).value = details[k] || ""; }); $("mdQuick").checked = prefs.quick !== false; }
