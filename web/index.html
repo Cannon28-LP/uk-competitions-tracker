@@ -278,6 +278,7 @@ th{color:var(--tx3);font-weight:600}
     <button type="button" class="toggle" data-t="brighton" aria-pressed="false" id="brightonBtn" hidden title="Brighton, Hove &amp; Sussex coast local competitions">🎡 Brighton</button>
     <button type="button" class="toggle" data-t="bristol" aria-pressed="false" id="bristolBtn" hidden title="Bristol, Bath, North Somerset &amp; South Glos local competitions">🌉 Bristol</button>
     <button type="button" class="toggle" data-t="cornwall" aria-pressed="false" id="cornwallBtn" hidden title="Cornwall &amp; Isles of Scilly local competitions">🌊 Cornwall</button>
+    <button type="button" class="toggle" data-t="scotland" aria-pressed="false" id="scotlandBtn" hidden title="Scotland local competitions">🏴 Scotland</button>
     </div>
     <div class="grp grp-f">
     <label class="price" id="prizeBox" title="Prize value range. Use the tick box to keep competitions whose prize value isn't stated."><span class="cs">Prize £</span><input id="pmin" type="number" inputmode="numeric" min="0" step="1" placeholder="min" aria-label="Minimum prize value in pounds">–<input id="pmax" type="number" inputmode="numeric" min="0" step="1" placeholder="max" aria-label="Maximum prize value in pounds"></label>
@@ -434,6 +435,7 @@ function prep(){
       _brighton: CC === "uk" && (it.tags || []).includes("brighton"),
       _bristol: CC === "uk" && (it.tags || []).includes("bristol"),
       _cornwall: CC === "uk" && (it.tags || []).includes("cornwall"),
+      _scotland: CC === "uk" && (it.tags || []).includes("scotland"),
       _brum: CC === "uk" && (it.tags || []).includes("birmingham"),
       _stns: (it.station || "").split(/\s*,\s*/).filter(Boolean),
       _direct: it.direct !== false,      // older data files have no flag: treat as direct
@@ -471,7 +473,7 @@ function match(it, skip){
   if (st.t.has("hants") && !it._hants) return false;
   if (st.t.has("london") && !it._london) return false;
   if (st.t.has("brum") && !it._brum) return false;
-  for (const k of ["brighton", "bristol", "cornwall"]) if (st.t.has(k) && !it["_" + k]) return false;
+  for (const k of ["brighton", "bristol", "cornwall", "scotland"]) if (st.t.has(k) && !it["_" + k]) return false;
   if (st.t.has("qa") && !it._qa) return false;
   if (st.stn && !it._stns.includes(st.stn)) return false;
   if (!st.nd && !it._direct) return false;
@@ -538,7 +540,7 @@ function card(it){
   <div class="media">
     <div class="ph" style="--h:${hue}"><span>${emoji}</span></div>
     ${it._img ? `<img src="${esc(it._img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}
-    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}${it._iow ? `<span class="tag">🏝️ IoW</span>` : ""}${it._hants ? `<span class="tag">🌳 Hants</span>` : ""}${it._london ? `<span class="tag">🏙️ London</span>` : ""}${it._brum ? `<span class="tag">🏭 Brum</span>` : ""}${it._brighton ? `<span class="tag">🎡 Brighton</span>` : ""}${it._bristol ? `<span class="tag">🌉 Bristol</span>` : ""}${it._cornwall ? `<span class="tag">🌊 Cornwall</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
+    <div class="ov"><div class="ov-l">${it.subcategory && it.subcategory !== "Unclear" ? `<span class="tag t-cat" title="${esc(it.category)}">${esc(it.subcategory)}</span>` : ""}${isNew(it) ? `<span class="tag t-new">NEW</span>` : ""}${stale}${it._radio ? `<span class="tag">📻 Radio</span>` : ""}${(it.tags || []).includes("tv") ? `<span class="tag">📺 TV</span>` : ""}${it._iow ? `<span class="tag">🏝️ IoW</span>` : ""}${it._hants ? `<span class="tag">🌳 Hants</span>` : ""}${it._london ? `<span class="tag">🏙️ London</span>` : ""}${it._brum ? `<span class="tag">🏭 Brum</span>` : ""}${it._brighton ? `<span class="tag">🎡 Brighton</span>` : ""}${it._bristol ? `<span class="tag">🌉 Bristol</span>` : ""}${it._cornwall ? `<span class="tag">🌊 Cornwall</span>` : ""}${it._scotland ? `<span class="tag">🏴 Scotland</span>` : ""}</div><div class="ov-r">${priceTag}</div></div>
   </div>
   <div class="body">
     <div class="kicker"><span class="b b-${esc(sf.badge)}" title="${esc((sf.reason ? sf.reason + " – " : "") + "automated safety guide, not a guarantee")}">${icon} ${esc(sf.badge)}</span><span class="prom" title="${esc(promoter)}">${esc(promoter)}</span></div>
@@ -683,7 +685,7 @@ function readUrl(){
   st.sort = SORTS[p.get("sort")] ? p.get("sort") : "new";
   st.cat = p.get("cat") || "";
   st.sub = st.cat ? (p.get("sub") || "") : "";
-  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow", "hants", "london", "brum", "qa", "brighton", "bristol", "cornwall"].includes(x)));
+  st.t = new Set((p.get("t") || "").split(",").filter(x => ["fresh", "ending", "radio", "pics", "iow", "hants", "london", "brum", "qa", "brighton", "bristol", "cornwall", "scotland"].includes(x)));
   st.safety = ["verified", "nocaution"].includes(p.get("safety")) ? p.get("safety") : "";
   st.src = p.get("src") || "";
   st.stn = p.get("stn") || "";
@@ -778,7 +780,7 @@ function radioVis(){ const any = ITEMS.some(it => it._radio); $("radioBtn").hidd
   const hs = ITEMS.some(it => it._hants); $("hantsBtn").hidden = !hs; if (!hs) st.t.delete("hants");
   const ld = ITEMS.some(it => it._london); $("londonBtn").hidden = !ld; if (!ld) st.t.delete("london");
   const hq = ITEMS.some(it => it._qa); $("qaBtn").hidden = !hq; if (!hq) st.t.delete("qa");
-  for (const k of ["brighton", "bristol", "cornwall"]){ const a = ITEMS.some(it => it["_" + k]); $(k + "Btn").hidden = !a; if (!a) st.t.delete(k); }
+  for (const k of ["brighton", "bristol", "cornwall", "scotland"]){ const a = ITEMS.some(it => it["_" + k]); $(k + "Btn").hidden = !a; if (!a) st.t.delete(k); }
   const bm = ITEMS.some(it => it._brum); $("brumBtn").hidden = !bm; if (!bm) st.t.delete("brum");
   const sc = {}; ITEMS.forEach(it => { if (it._radio) it._stns.forEach(s => { sc[s] = (sc[s] || 0) + 1; }); });
   const names = Object.keys(sc).sort((a, b) => a.localeCompare(b));

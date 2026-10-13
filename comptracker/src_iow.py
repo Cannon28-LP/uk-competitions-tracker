@@ -199,7 +199,7 @@ BAUER_REGIONS = [("hits-radio", "Hits Radio", r) for r in ("manchester", "birmin
                  "staffordshire", "teesside", "bristol", "oxfordshire", "cambridgeshire", "south-coast", "cornwall", "sussex")] + \
                 [("greatest-hits", "Greatest Hits Radio", r) for r in ("manchester", "lancashire", "west-midlands", "north-east", "teesside",
                  "bristol", "kent", "oxfordshire", "cambridgeshire", "glasgow", "edinburgh",
-                 "sussex", "somerset", "bath", "cornwall", "plymouth", "gloucestershire", "devon")]
+                 "sussex", "somerset", "bath", "cornwall", "plymouth", "gloucestershire", "devon", "ayrshire")]
 
 MONTHS = ["january","february","march","april","may","june","july","august","september","october","november","december"]
 
@@ -231,7 +231,7 @@ def radio_bauer_regional(ctx):
         tags = ["radio"] + (["hampshire"] if "South Coast" in c["reg"] else [])
         if len(c["reg"]) <= 2:      # a genuinely local prize (network-wide sponsored ones run in many areas: no place tag)
             for reg, tg in (("Sussex", "brighton"), ("Bristol", "bristol"), ("Bath", "bristol"), ("Cornwall", "cornwall"),
-                            ("Birmingham", "birmingham"), ("West Midlands", "birmingham"), ("Coventry", "birmingham")):
+                            ("Birmingham", "birmingham"), ("Glasgow", "scotland"), ("Edinburgh", "scotland"), ("Ayrshire", "scotland"), ("West Midlands", "birmingham"), ("Coventry", "birmingham")):
                 if reg in c["reg"] and tg not in tags: tags.append(tg)
         out.append(rec(title=c["t"], promoter=c["st"][0], link=c["link"], prize_desc=c["t"], prize_value=prize_value_from_text(c["t"]),
                        entry_type="free", entry_note="Bauer regional radio competition (Bauer competition terms); region: " + ", ".join(c["reg"]) + ".",
@@ -282,9 +282,9 @@ def is_london(it):
     t = " ".join([it.get("title") or "", it.get("prize_desc") or "", it.get("promoter") or ""])
     return bool(LONDON_RX.search(t)) and not re.search(r"\bnew london\b|\blondon,? (ontario|ohio|kentucky)\b", t, re.I)
 
-def _reach(ctx, base, paper, tag, out, recent, metakey):
+def _reach(ctx, base, paper, tag, out, recent, metakey, path="/all-about/competitions"):
     """Reach plc local paper 'competitions' topic page: only articles published in the last 45 days (date from the article)."""
-    r = ctx.get(base + "/all-about/competitions")
+    r = ctx.get(base + path)
     if r:
         ss = soup(r); seen = {}
         for a in ss.find_all("a", href=True):
@@ -293,6 +293,7 @@ def _reach(ctx, base, paper, tag, out, recent, metakey):
             slug = h.rstrip("/").rsplit("/", 1)[-1]
             if not re.search(r"(^win-|competition|giveaway|chance-win|could-win)", slug): continue
             seen[h] = int(m.group(1))
+        seen = dict(sorted(seen.items(), key=lambda x: -x[1])[:40])
         fetched = 0; cutoff = now() - timedelta(days=45)
         for h, n in sorted(seen.items(), key=lambda x: -x[1]):
             link = h if h.startswith("http") else base + h
@@ -311,7 +312,7 @@ def _reach(ctx, base, paper, tag, out, recent, metakey):
             t = c.get("t") or ("Win " + re.sub(r"^win-", "", re.sub(r"-\d{8}$", "", link.rsplit("/", 1)[-1])).replace("-", " "))
             recent.add(link)
             out.append(rec(title=t, promoter=paper + " (Reach plc)", link=link, prize_desc=t, entry_type="free",
-                           entry_note=paper + " giveaway; closing date and terms in the article.", skey=link, tags=[tag]))
+                           entry_note=paper + " giveaway; closing date and terms in the article.", skey=link, tags=[tag] if tag else []))
         ctx.meta[metakey] = len(seen)
 
 @source("London local (MyLondon, Secret London)", "publisher", "https://www.mylondon.news/all-about/competitions",
@@ -465,3 +466,63 @@ def is_cornwall(it): return bool(CORNWALL_RX.search(_t(it))) and not re.search(r
         "Newsquest's Brighton daily; its public competitions page (Newsquest group prizes, subscriber-only ones marked).", direct=True, allow_empty=True)
 def argus(ctx):
     return _newsquest(ctx, "https://www.theargus.co.uk", "The Argus", "brighton")
+
+# ================================================================ Scotland
+SCOT_RX = re.compile(r"\b(scotland|scottish|glasgow|edinburgh|aberdeen(?:shire)?|dundee|inverness|stirling|"
+    r"perth(?!,? (?:wa|western australia|australia|amboy))(?! (?:mint|scorchers|wildcats|glory))|perthshire|"
+    r"scottish highlands|the highlands|highlands and islands|isle of skye|skye|hebrides|orkney|shetland|isle of (?:arran|mull|islay|lewis|harris)|"
+    r"fife|ayrshire|ayr|scottish borders|dumfries|galloway|argyll|loch (?:lomond|ness|tay|awe|fyne|katrine|earn)|lochs?\b(?= [A-Z])|"
+    r"st\.? andrews|gleneagles|cairngorms?|aviemore|fort william|oban|ullapool|pitlochry|crieff|kelso|melrose|peebles|falkirk|paisley|"
+    r"kilmarnock|livingston|east kilbride|cumbernauld|hamilton(?= scotland)|motherwell|dunfermline|kirkcaldy|"
+    r"ovo hydro|the hydro|sec (?:centre|armadillo)|sec glasgow|murrayfield|hampden|edinburgh castle|edinburgh fringe|fringe festival|"
+    r"royal mile|holyrood|stirling castle|kelvingrove|ibrox|celtic park|v&a dundee|edinburgh zoo|loch lomond shores|kelpies|"
+    r"clyde 1|forth 1|tay fm|northsound|mfr|moray firth|radio borders|west sound|glasgow times)\b", re.I)
+
+def is_scotland(it):
+    t = _t(it)
+    if re.search(r"\bhighland (?:cattle|cow|coo)\b", t, re.I) and not re.search(r"\b(stay|break|trip|holiday|visit|tour)\b", t, re.I): return False
+    return bool(SCOT_RX.search(t)) and not re.search(r"\bperth,? (?:wa|western australia|australia)\b|\bnew scotland\b|\bnova scotia\b|"
+                                                       r"\baberdeen,? (?:md|sd|wa|nc)\b|\bglasgow,? (?:ky|mt)\b", t, re.I)
+
+NQ_SCOT = [("https://www.heraldscotland.com", "The Herald"), ("https://www.thenational.scot", "The National"),
+           ("https://www.glasgowtimes.co.uk", "Glasgow Times")]
+
+@source("Scotland local (Daily Record, Herald, National, Glasgow Times, Scottish Field)", "publisher", "https://www.dailyrecord.co.uk/lifestyle/competitions/",
+        "Daily Record (Reach) giveaways from the last 45 days; Newsquest's Scottish titles (network-wide prizes, merged); Scottish Field magazine "
+        "competitions. Scottish Sun: robots.txt disallows all; Scotsman / Edinburgh Evening News / Press and Journal: no public competitions page.",
+        direct=True, allow_empty=True)
+def scotland_local(ctx):
+    out = []; recent = set()
+    _reach(ctx, "https://www.dailyrecord.co.uk", "Daily Record", "", out, recent, "daily_record", path="/lifestyle/competitions/")   # tagged by place only (many prizes are UK-wide)
+    out[:] = [o for o in out if "/subscriber-rewards/" not in o["link"]]   # subscriber-only
+    byid = {}
+    for base, paper in NQ_SCOT:
+        got = _newsquest(ctx, base, paper, ""); ctx.meta[paper.split()[-1].lower()] = len(got)
+        for o in got:
+            o["tags"] = [x for x in (o.get("tags") or []) if x]
+            cid = re.search(r"/competitions/(\d+)\.", o["link"]); k = cid.group(1) if cid else o["link"]
+            if k not in byid: byid[k] = o
+    out += list(byid.values())
+    r = ctx.get("https://www.scottishfield.co.uk/category/competitions/feed/")
+    n_sf = 0
+    if r:
+        for item in re.findall(r"<item>(.*?)</item>", r.text or "", re.S):
+            link = _tag(item, "link"); t = clean(re.sub(r"<!\[CDATA\[|\]\]>", "", _tag(item, "title")))
+            pub = parse_date(_tag(item, "pubDate")[:16]) if _tag(item, "pubDate") else None
+            if not link or not WIN.search(t): continue
+            n_sf += 1
+            if pub and pub > now() - timedelta(days=60): recent.add(link)
+            out.append(rec(title=t, promoter="Scottish Field", link=link, prize_desc=t, prize_value=prize_value_from_text(t), entry_type="free",
+                           entry_note="Scottish Field magazine competition; closing date in the article.", skey=link, tags=["scotland"]))
+    ctx.meta["scottish_field"] = n_sf
+    dates = detail_closing(ctx, [o["link"] for o in out if "scottishfield" in o["link"] or "dailyrecord" in o["link"]], ctx.cap("scot_detail", 25))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"])
+        if d:
+            if d[0] < now(): continue
+            o["closes_at"], o["closes_precision"] = d
+        elif "scottishfield" in o["link"] and o["link"] not in recent: continue
+        o["prize_value"] = o["prize_value"] or prize_value_from_text(o["title"])
+        keep.append(o)
+    return keep
