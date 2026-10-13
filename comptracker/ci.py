@@ -75,6 +75,7 @@ def build_site_json(db):
     return dict(last_updated=meta.get("last_updated"), last_run_start=meta.get("last_run_start"), baseline_at=base,
                 country=countries.info(cc), categories=CATEGORIES, subcategories=tax, total=len(items), items=items, by_source=by_src,
                 sources=out_srcs, excluded_sources=excluded, stale_after_hours=collector.STALE_DROP_H,
+                areas=__import__("comptracker.gazetteer", fromlist=["index"]).index() if cc == "uk" else [],
                 run_stats={k: v for k, v in stats.items() if k != "sources"})
 
 def main():

@@ -4,7 +4,7 @@ from . import sources as S
 from . import util
 from .util import Fetcher, now, LONDON, norm, norm_promoter, prize_value_from_text, is_closed_title
 from .classify import classify, prize_type
-from . import safety, dedupe, valuecheck, resolve, src_iow, images
+from . import safety, dedupe, valuecheck, resolve, src_iow, images, gazetteer
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.environ.get("COMP_DB") or os.path.join(BASE, "data", "comps.db")
@@ -275,6 +275,7 @@ def merge_and_store(db, fetcher, t0, summary=None):
         if util.CUR["cc"] == "uk" and "hampshire" not in tags and src_iow.is_hants(item): tags = list(tags) + ["hampshire"]
         if util.CUR["cc"] == "uk" and "london" not in tags and src_iow.is_london(item): tags = list(tags) + ["london"]
         if util.CUR["cc"] == "uk" and "birmingham" not in tags and src_iow.is_brum(item): tags = list(tags) + ["birmingham"]
+        if util.CUR["cc"] == "uk": item["areas"] = gazetteer.areas(item)   # UK cities/regions (Area filter)
         if util.CUR["cc"] == "uk":
             for tg, fn in (("brighton", src_iow.is_brighton), ("bristol", src_iow.is_bristol), ("cornwall", src_iow.is_cornwall), ("scotland", src_iow.is_scotland)):
                 if tg not in tags and fn(item): tags = list(tags) + [tg]

@@ -291,6 +291,7 @@ th{color:var(--tx3);font-weight:600}
       <option value="verified">Verified only</option>
     </select>
     <select id="src" aria-label="Source"><option value="">All sources</option></select>
+    <select id="area" aria-label="Area" hidden title="UK cities and regions"><option value="">All areas</option></select>
     <select id="stn" aria-label="Radio station" hidden><option value="">All stations</option></select>
     </div>
   </div>
@@ -372,7 +373,7 @@ const CAT_META = {
   "Books/Music/Film":["📚",265],"Gifts/Bundles":["🎀",345],"Other":["⭐",230]
 };
 const $ = id => document.getElementById(id);
-const st = {q:"", entry:"", sort:"new", cat:"", sub:"", t:new Set(), safety:"", src:"", stn:"", pmin:null, pmax:null, emax:null, unk:true, nd:false};
+const st = {q:"", entry:"", sort:"new", cat:"", sub:"", t:new Set(), safety:"", src:"", stn:"", area:"", pmin:null, pmax:null, emax:null, unk:true, nd:false};
 const priceSet = () => st.pmin != null || st.pmax != null;
 let DATA = null, ITEMS = [], BYID = new Map(), LIST = [], shown = 0, cdEls = [];
 
@@ -435,6 +436,7 @@ function prep(){
       _brighton: CC === "uk" && (it.tags || []).includes("brighton"),
       _bristol: CC === "uk" && (it.tags || []).includes("bristol"),
       _cornwall: CC === "uk" && (it.tags || []).includes("cornwall"),
+      _areas: CC === "uk" ? (it.areas || []) : [],
       _scotland: CC === "uk" && (it.tags || []).includes("scotland"),
       _brum: CC === "uk" && (it.tags || []).includes("birmingham"),
       _stns: (it.station || "").split(/\s*,\s*/).filter(Boolean),
@@ -476,6 +478,7 @@ function match(it, skip){
   for (const k of ["brighton", "bristol", "cornwall", "scotland"]) if (st.t.has(k) && !it["_" + k]) return false;
   if (st.t.has("qa") && !it._qa) return false;
   if (st.stn && !it._stns.includes(st.stn)) return false;
+  if (st.area && !it._areas.includes(st.area)) return false;
   if (!st.nd && !it._direct) return false;
   if (st.t.has("pics") && !it._img) return false;
   if (st.t.has("ending") && !(it._cl && it._cl - Date.now() < 864e5)) return false;
@@ -611,7 +614,7 @@ function render(keepScroll){
   $("grid").textContent = "";
   appendPage();
   $("empty").hidden = LIST.length > 0;
-  $("reset").hidden = !(st.q || st.entry || st.cat || st.sub || st.t.size || st.safety || st.src || st.stn || priceSet() || st.emax != null || !st.unk || st.nd);
+  $("reset").hidden = !(st.q || st.entry || st.cat || st.sub || st.t.size || st.safety || st.src || st.stn || st.area || priceSet() || st.emax != null || !st.unk || st.nd);
   const nd = ITEMS.filter(it => !it._direct).length; $("ndN").textContent = nd ? "(" + num(nd) + ")" : ""; $("ndBox").hidden = !nd;
   syncUrl();
   if (!keepScroll){   // results changed: bring the top of the list back into view
@@ -670,6 +673,7 @@ function syncUrl(){
   if (st.safety) p.set("safety", st.safety);
   if (st.src) p.set("src", st.src);
   if (st.stn) p.set("stn", st.stn);
+  if (st.area) p.set("area", st.area);
   if (st.pmin != null) p.set("pmin", st.pmin);
   if (st.pmax != null) p.set("pmax", st.pmax);
   if (st.emax != null) p.set("emax", st.emax);
@@ -689,6 +693,7 @@ function readUrl(){
   st.safety = ["verified", "nocaution"].includes(p.get("safety")) ? p.get("safety") : "";
   st.src = p.get("src") || "";
   st.stn = p.get("stn") || "";
+  st.area = p.get("area") || "";
   st.pmin = toNum(p.get("pmin")); st.pmax = toNum(p.get("pmax")); st.emax = toNum(p.get("emax"));
   st.unk = p.get("unk") !== "0";
   st.nd = p.get("nd") === "1";
@@ -720,6 +725,7 @@ $("sort").addEventListener("change", e => { st.sort = e.target.value; render(); 
 $("safety").addEventListener("change", e => { st.safety = e.target.value; render(); });
 $("src").addEventListener("change", e => { st.src = e.target.value; render(); });
 $("stn").addEventListener("change", e => { st.stn = e.target.value; render(); });
+$("area").addEventListener("change", e => { st.area = e.target.value; render(); });
 let pTimer;
 ["pmin", "pmax", "emax"].forEach(id => $(id).addEventListener("input", () => {
   clearTimeout(pTimer);
@@ -779,6 +785,14 @@ function radioVis(){ const any = ITEMS.some(it => it._radio); $("radioBtn").hidd
   const iow = ITEMS.some(it => it._iow); $("iowBtn").hidden = !iow; if (!iow) st.t.delete("iow");
   const hs = ITEMS.some(it => it._hants); $("hantsBtn").hidden = !hs; if (!hs) st.t.delete("hants");
   const ld = ITEMS.some(it => it._london); $("londonBtn").hidden = !ld; if (!ld) st.t.delete("london");
+  { const ac = {}; ITEMS.forEach(it => it._areas.forEach(a => { ac[a] = (ac[a] || 0) + 1; }));
+    const idx = (DATA.areas || []).filter(a => ac[a.id]); const sel = $("area");
+    sel.hidden = !(CC === "uk" && idx.length);
+    const groups = {}; idx.forEach(a => { (groups[a.nation] = groups[a.nation] || []).push(a); });
+    sel.innerHTML = '<option value="">All areas</option>' + ["England", "Scotland", "Wales", "Northern Ireland"].filter(n => groups[n]).map(n =>
+      `<optgroup label="${esc(n)}">` + groups[n].sort((x, y) => x.kind === y.kind ? x.name.localeCompare(y.name) : x.kind === "city" ? -1 : 1)
+        .map(a => `<option value="${esc(a.id)}">${esc(a.name)}${a.kind === "region" ? " (area)" : ""} (${ac[a.id]})</option>`).join("") + "</optgroup>").join("");
+    if (st.area && !ac[st.area]) st.area = ""; sel.value = st.area || ""; }
   const hq = ITEMS.some(it => it._qa); $("qaBtn").hidden = !hq; if (!hq) st.t.delete("qa");
   for (const k of ["brighton", "bristol", "cornwall", "scotland"]){ const a = ITEMS.some(it => it["_" + k]); $(k + "Btn").hidden = !a; if (!a) st.t.delete(k); }
   const bm = ITEMS.some(it => it._brum); $("brumBtn").hidden = !bm; if (!bm) st.t.delete("brum");

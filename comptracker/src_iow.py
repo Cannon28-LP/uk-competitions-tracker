@@ -298,12 +298,12 @@ def _reach(ctx, base, paper, tag, out, recent, metakey, path="/all-about/competi
         for h, n in sorted(seen.items(), key=lambda x: -x[1]):
             link = h if h.startswith("http") else base + h
             c = ctx.cache_get("mlpub:" + link)
-            if c is None:
+            if c is None or not c.get("pub"):
                 if fetched >= ctx.cap(metakey + "_detail", 20): continue
                 fetched += 1; rr = ctx.get(link)
                 if not rr: continue
                 html = rr.text or ""
-                tm = re.search(r"<title>(.*?)</title>", html, re.S); pm = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html)
+                tm = re.search(r"<title>(.*?)</title>", html, re.S); pm = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html) or re.search(r'(?:article:published_time|datePublished)"\s+content="([^"]+)"', html)
                 c = dict(t=clean(re.sub(r"\s+-\s+[^-]{2,40}$", "", tm.group(1))) if tm else "", pub=pm.group(1) if pm else "")
                 ctx.cache_put("mlpub:" + link, c)
             try: pub = datetime.fromisoformat(c["pub"].replace("Z", "+00:00"))
@@ -523,6 +523,29 @@ def scotland_local(ctx):
             if d[0] < now(): continue
             o["closes_at"], o["closes_precision"] = d
         elif "scottishfield" in o["link"] and o["link"] not in recent: continue
+        o["prize_value"] = o["prize_value"] or prize_value_from_text(o["title"])
+        keep.append(o)
+    return keep
+
+# ================================================================ Regional Reach titles with a public competitions page (place-tagged only)
+REACH_REGIONAL = [("https://www.chroniclelive.co.uk", "Chronicle Live", "/lifestyle/competitions/"),
+                  ("https://www.getsurrey.co.uk", "SurreyLive", "/lifestyle/competitions/")]
+
+@source("Regional papers (Reach: Chronicle Live, SurreyLive)", "publisher", "https://www.chroniclelive.co.uk/lifestyle/competitions/",
+        "Reach regional titles whose competitions page is public (others - MEN, Liverpool Echo, WalesOnline, Belfast Live, Bristol Post, "
+        "SussexLive, CornwallLive, Nottingham Post, Leicester Mercury... - have none). Last 45 days only; tagged by place.", direct=True, allow_empty=True)
+def reach_regional(ctx):
+    out = []; recent = set()
+    for base, paper, path in REACH_REGIONAL:
+        _reach(ctx, base, paper, "", out, recent, paper.split()[0].lower(), path=path)
+    out = [o for o in out if "/subscriber-rewards/" not in o["link"]]
+    dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("reach_reg_detail", 20))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"])
+        if d:
+            if d[0] < now(): continue
+            o["closes_at"], o["closes_precision"] = d
         o["prize_value"] = o["prize_value"] or prize_value_from_text(o["title"])
         keep.append(o)
     return keep
