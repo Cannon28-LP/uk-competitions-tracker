@@ -371,3 +371,68 @@ def brum_local(ctx):
         o["prize_value"] = o["prize_value"] or prize_value_from_text(o["title"])
         keep.append(o)
     return keep
+
+# ================================================================ Make Me A Winner (Bauer Media's paid prize draws)
+MMAW = "https://makemeawinner.co.uk"; MMAW_API = "https://api.winhappy.com"
+MMAW_IMG = "https://image-cdn.makemeawinner.co.uk/public/campaign-assets/prod/{tag}/og.webp"
+
+@source("Make Me A Winner", "operator", MMAW,
+        "Bauer Media's paid prize-draw site (also on Bauer radio). Its pages are JS-rendered; the list and details come from the same public "
+        "JSON the site loads for every anonymous visitor (guest session, no login). Free postal entry route per competition.", direct=True)
+def make_me_a_winner(ctx):
+    h = {"X-BRAND": "UK_WINHAPPY", "X-REFERRER": MMAW + "/", "Content-Type": "application/json", "Origin": MMAW, "Referer": MMAW + "/"}
+    r = ctx.get(MMAW_API + "/session/data", headers=h)
+    tok = r.headers.get("x-session") if r is not None else None
+    if not tok: ctx.errors.append("no guest session"); return []
+    h["Authorization"] = "Bearer " + tok
+    r = ctx.get(MMAW_API + "/campaign/page/HOME", headers=h)
+    if r is None: return []
+    camps = {}
+    for g in (r.json().get("groups") or []):
+        for it in g.get("items") or []:
+            if it.get("type") == "CAMPAIGN" and it.get("campaign_type") in ("COMPETITION", "RAFFLE", "EMBEDDED"):
+                camps.setdefault(it["tag"], it)
+    ctx.meta["mmaw_listed"] = len(camps)
+    out = []
+    for tag, it in camps.items():
+        info = {}
+        ri = ctx.get(f"{MMAW_API}/campaign/info/{tag}", headers=h)
+        if ri is not None:
+            try: info = ri.json()
+            except Exception: info = {}
+        title = clean(info.get("title") or it.get("title") or "")
+        if not title: continue
+        end = info.get("end_date") or it.get("end_date")
+        closes = datetime.fromtimestamp(end / 1000, util_tz()) if end else None
+        if closes and closes < now(): continue
+        prices = [p for p in (info.get("prices") or []) if p.get("price") is not None]
+        single = min(prices, key=lambda p: (p.get("quantity") or 1, p["price"])) if prices else None
+        cost = float(single["price"]) if single else None
+        ctext = (f"£{cost:g}" + (f" for {single['quantity']} entries" if single and (single.get("quantity") or 1) > 1 else " per entry")) if single else ""
+        if prices and len(prices) > 1:
+            best = max(prices, key=lambda p: p.get("quantity") or 1)
+            ctext += f" (up to {best.get('quantity')} entries for £{float(best['price']):g})"
+        ts = tt = None; raf = info.get("raffle") or {}
+        if cost is None and isinstance(raf, dict) and raf.get("unit_price"):
+            cost = float(raf["unit_price"]); ctext = f"£{cost:g} per entry" + (f" (up to {raf['slider_max']} entries)" if raf.get("slider_max") else "")
+        if isinstance(raf, dict):
+            for k in ("tickets_sold", "sold", "sold_count", "entries_sold"):
+                if raf.get(k) is not None: ts = int(raf[k]); break
+            for k in ("max_tickets", "total_tickets", "tickets_total", "total", "max_entries"):
+                if raf.get(k) is not None: tt = int(raf[k]); break
+        kind = it.get("campaign_type")
+        link = f"{MMAW}/{'embedded' if kind == 'EMBEDDED' else 'campaign'}/{tag}"
+        postal = info.get("postal_entry_code")
+        note = "Paid prize draw (Bauer Media)." + (f" Free postal entry available (postal code '{postal}', see the competition terms)." if postal else
+                                                   " Free entry route: see the competition terms.")
+        desc = clean(re.sub(r"<[^>]+>", " ", info.get("short_description") or it.get("short_description") or title))
+        out.append(rec(title=title, promoter="Make Me A Winner (Bauer Media)", link=link, prize_desc=desc or title,
+                       prize_value=prize_value_from_text(title + " " + desc), entry_type="paid" if cost else "",
+                       entry_cost=cost, entry_cost_text=ctext, closes_at=closes, closes_precision="exact" if closes else "",
+                       tickets_sold=ts, tickets_total=tt, pct_sold=round(100 * ts / tt, 1) if ts is not None and tt else None,
+                       entry_note=note, image=MMAW_IMG.format(tag=tag), skey=link))
+    return out
+
+def util_tz():
+    from .util import LONDON
+    return LONDON

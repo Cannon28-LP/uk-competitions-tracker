@@ -110,7 +110,7 @@ def likely(q, opts, text=""):
                 hit = [o for o in opts if o.strip().lower().startswith(ans.lower()) or ans.lower() in o.lower().split()]
                 if len(hit) == 1: return hit[0], "general knowledge"
             else: return ans, "general knowledge"
-    if opts and text:     # exactly one option is mentioned elsewhere on the page (e.g. in the prize description)
+    if False and opts and text:     # DISABLED: page-text guessing produced wrong answers (e.g. cod -> Hull) is mentioned elsewhere on the page (e.g. in the prize description)
         body = text.lower().replace(q.lower(), " ")
         for o in opts: body = body.replace(o.lower(), "\x00" + o.lower(), 1) if False else body
         cnt = {o: len(re.findall(r"\b" + re.escape(o.lower()) + r"\b", body)) for o in opts if len(o) >= 3}

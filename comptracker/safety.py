@@ -18,7 +18,7 @@ BIG_BRANDS = ["tesco", "sainsbury", "asda", "morrisons", "waitrose", "aldi", "li
               "harpercollins", "hachette", "radio times", "olive magazine", "good housekeeping", "woman&home", "hello!", "the sun", "mirror", "express", "telegraph", "guardian", "times holidays",
               "british airways", "easyjet", "ryanair", "virgin", "heinz", "kellogg", "nestle", "cadbury", "walkers", "pepsi", "coca-cola", "unilever", "p&g", "loreal",
               "boohoo", "next", "asos", "very", "tombola", "nationwide", "which", "english heritage", "national trust", "love2shop", "buyagift"]
-BIG_DOMAINS = ("tesco.com", "sainsburys.co.uk", "asda.com", "amazon.co.uk", "currys.co.uk", "argos.co.uk", "johnlewis.com", "itv.com", "bbc.co.uk", "bbc.com",
+BIG_DOMAINS = ("makemeawinner.co.uk", "tesco.com", "sainsburys.co.uk", "asda.com", "amazon.co.uk", "currys.co.uk", "argos.co.uk", "johnlewis.com", "itv.com", "bbc.co.uk", "bbc.com",
                "channel4.com", "mumsnet.com", "dfs.co.uk", "dyson.co.uk", "samsung.com", "lego.com", "tui.co.uk", "jet2holidays.com", "radiotimes.com", "smoothradio.com",
                "heart.co.uk", "goodhousekeeping.com", "olivemagazine.com", "panmacmillan.com", "nationwide.co.uk", "ikea.com", "boots.com", "mandmdirect.com", "waitrose.com")
 SCAM_TLDS = (".xyz", ".top", ".click", ".monster", ".icu", ".buzz", ".cyou", ".sbs", ".rest", ".cfd", ".gq", ".tk", ".ml", ".cf", ".ga", ".work", ".vip", ".bid", ".loan")
