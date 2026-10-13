@@ -275,6 +275,9 @@ def merge_and_store(db, fetcher, t0, summary=None):
         if util.CUR["cc"] == "uk" and "hampshire" not in tags and src_iow.is_hants(item): tags = list(tags) + ["hampshire"]
         if util.CUR["cc"] == "uk" and "london" not in tags and src_iow.is_london(item): tags = list(tags) + ["london"]
         if util.CUR["cc"] == "uk" and "birmingham" not in tags and src_iow.is_brum(item): tags = list(tags) + ["birmingham"]
+        if util.CUR["cc"] == "uk":
+            for tg, fn in (("brighton", src_iow.is_brighton), ("bristol", src_iow.is_bristol), ("cornwall", src_iow.is_cornwall)):
+                if tg not in tags and fn(item): tags = list(tags) + [tg]
         item["tags"] = tags
         if item["prize_value"] is None:
             item["prize_value"] = prize_value_from_text(item["title"])

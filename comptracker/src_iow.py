@@ -196,16 +196,17 @@ def ghr_south_coast(ctx):
 
 # ================================================================ Bauer regional stations (Hits Radio / Greatest Hits Radio areas)
 BAUER_REGIONS = [("hits-radio", "Hits Radio", r) for r in ("manchester", "birmingham", "liverpool", "coventry", "east-midlands", "lancashire",
-                 "staffordshire", "teesside", "bristol", "oxfordshire", "cambridgeshire", "south-coast")] + \
+                 "staffordshire", "teesside", "bristol", "oxfordshire", "cambridgeshire", "south-coast", "cornwall", "sussex")] + \
                 [("greatest-hits", "Greatest Hits Radio", r) for r in ("manchester", "lancashire", "west-midlands", "north-east", "teesside",
-                 "bristol", "kent", "oxfordshire", "cambridgeshire", "glasgow", "edinburgh")]
+                 "bristol", "kent", "oxfordshire", "cambridgeshire", "glasgow", "edinburgh",
+                 "sussex", "somerset", "bath", "cornwall", "plymouth", "gloucestershire", "devon")]
 
 MONTHS = ["january","february","march","april","may","june","july","august","september","october","november","december"]
 
 def _region_name(r): return r.replace("-", " ").title()
 
 @source("Radio: Bauer regional stations (Hits Radio & Greatest Hits Radio areas)", "radio", "https://www.hellorayo.co.uk/hits-radio/manchester/win",
-        "Bauer's regional win pages (23 areas, e.g. Hits Radio Manchester, Greatest Hits Radio Kent/Glasgow); local prizes not on the national pages. "
+        "Bauer's regional win pages (32 areas, e.g. Hits Radio Manchester, Greatest Hits Radio Kent/Glasgow); local prizes not on the national pages. "
         "Greatest Hits Radio South Coast is its own source (Hampshire).", direct=True, allow_empty=True)
 def radio_bauer_regional(ctx):
     byslug = {}
@@ -228,6 +229,10 @@ def radio_bauer_regional(ctx):
     for cs, c in byslug.items():
         if "/greatest-hits/south-coast/" in c["link"]: continue
         tags = ["radio"] + (["hampshire"] if "South Coast" in c["reg"] else [])
+        if len(c["reg"]) <= 2:      # a genuinely local prize (network-wide sponsored ones run in many areas: no place tag)
+            for reg, tg in (("Sussex", "brighton"), ("Bristol", "bristol"), ("Bath", "bristol"), ("Cornwall", "cornwall"),
+                            ("Birmingham", "birmingham"), ("West Midlands", "birmingham"), ("Coventry", "birmingham")):
+                if reg in c["reg"] and tg not in tags: tags.append(tg)
         out.append(rec(title=c["t"], promoter=c["st"][0], link=c["link"], prize_desc=c["t"], prize_value=prize_value_from_text(c["t"]),
                        entry_type="free", entry_note="Bauer regional radio competition (Bauer competition terms); region: " + ", ".join(c["reg"]) + ".",
                        station=", ".join(c["st"][:4]), skey=c["link"], tags=tags))
@@ -436,3 +441,27 @@ def make_me_a_winner(ctx):
 def util_tz():
     from .util import LONDON
     return LONDON
+
+# ================================================================ Brighton / Sussex coast, Bristol & Bath, Cornwall
+BRIGHTON_RX = re.compile(r"\b(brighton|hove|sussex|worthing|eastbourne|hastings|bognor regis|littlehampton|shoreham|seaford|newhaven|"
+    r"lewes|bexhill|rottingdean|peacehaven|chichester|i360|brighton pier|palace pier|brighton dome|amex stadium|american express stadium|"
+    r"brighton centre|theatre royal brighton|royal pavilion|sea life brighton|the lanes|devil'?s dyke|glyndebourne|goodwood|fontwell)\b", re.I)
+BRISTOL_RX = re.compile(r"\b(bristol|(?-i:Bath|BATH)(?! (?:[Tt]owel|[Bb]omb|[Mm]at|[Rr]obe|[Rr]oom|[Tt]ub|[Ss]alts?|[Tt]ime|[Tt]oy|[Ss]et|[Pp]roducts?)s?\b)(?! (?:&|and) [Bb]ody)|north somerset|weston-super-mare|clevedon|"
+    r"portishead|nailsea|keynsham|south glos(?:tershire)?|yate|thornbury|filton|kingswood|frome|"
+    r"bristol zoo|wild place|ss great britain|ashton gate|bristol beacon|colston hall|bristol hippodrome|old vic|clifton|"
+    r"we the curious|aerospace bristol|cabot circus|cribbs causeway|thermae bath|roman baths|bath abbey|longleat|cheddar gorge)\b", re.I)
+CORNWALL_RX = re.compile(r"\b(cornwall|cornish|kernow|truro|newquay|st\.? ives|falmouth|penzance|isles of scilly|scilly|bude|padstow|"
+    r"st\.? austell|bodmin|redruth|camborne|launceston|looe|fowey|helston|hayle|wadebridge|tintagel|perranporth|polperro|mousehole|"
+    r"marazion|st\.? michael'?s mount|eden project|lost gardens of heligan|heligan|minack|land'?s end|lizard point|trebah|"
+    r"tate st ives|national maritime museum cornwall|flambards|newquay zoo|pirate fm|boardmasters|fistral)\b", re.I)
+
+def _t(it):
+    return " ".join([it.get("title") or "", it.get("prize_desc") or "", it.get("promoter") or "", it.get("station") or ""])
+def is_brighton(it): return bool(BRIGHTON_RX.search(_t(it))) and not re.search(r"\bnew brighton\b|\bbrighton,? (?:ma|mi|co|massachusetts|michigan|colorado|victoria|melbourne)\b", _t(it), re.I)
+def is_bristol(it): return bool(BRISTOL_RX.search(_t(it))) and not re.search(r"\bbristol,? (?:ct|tn|va|connecticut|tennessee|virginia)\b|\bbath,? (?:maine|me)\b", _t(it), re.I)
+def is_cornwall(it): return bool(CORNWALL_RX.search(_t(it))) and not re.search(r"\bcornwall,? (?:ontario|on|ny|ct)\b", _t(it), re.I)
+
+@source("Brighton & Sussex: The Argus", "publisher", "https://www.theargus.co.uk/competitions/",
+        "Newsquest's Brighton daily; its public competitions page (Newsquest group prizes, subscriber-only ones marked).", direct=True, allow_empty=True)
+def argus(ctx):
+    return _newsquest(ctx, "https://www.theargus.co.uk", "The Argus", "brighton")
