@@ -507,7 +507,7 @@ def scotland_local(ctx):
     n_sf = 0
     if r:
         for item in re.findall(r"<item>(.*?)</item>", r.text or "", re.S):
-            link = _tag(item, "link"); t = clean(re.sub(r"<!\[CDATA\[|\]\]>", "", _tag(item, "title")))
+            link = _tag(item, "link"); t = clean(__import__("html").unescape(re.sub(r"<!\[CDATA\[|\]\]>", "", _tag(item, "title"))))
             pub = parse_date(_tag(item, "pubDate")[:16]) if _tag(item, "pubDate") else None
             if not link or not WIN.search(t): continue
             n_sf += 1
