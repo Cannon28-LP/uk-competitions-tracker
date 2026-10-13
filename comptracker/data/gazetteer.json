@@ -1,0 +1,1742 @@
+{
+ "version": 1,
+ "note": "UK areas for local tagging: terms are case-sensitive proper names (word-bounded); 'neg' rejects a match, 'ctx' (if set) must also match. Edit freely.",
+ "areas": [
+  {
+   "id": "bath",
+   "name": "Bath",
+   "nation": "England",
+   "region": "South West",
+   "kind": "city",
+   "terms": [
+    "Bath",
+    "Roman Baths",
+    "Thermae Bath",
+    "Bath Abbey",
+    "Royal Crescent"
+   ],
+   "neg": "",
+   "ctx": "\\b(?:in|to|of|near|at|visit|around|from)\\s+Bath\\b|\\bBath\\s+(?:Spa|Abbey|Rugby|Christmas Market|city|break|stay|hotel)|\\bBath,|Roman Baths|Thermae Bath|Royal Crescent"
+  },
+  {
+   "id": "birmingham",
+   "name": "Birmingham",
+   "nation": "England",
+   "region": "West Midlands",
+   "kind": "city",
+   "terms": [
+    "Birmingham",
+    "Brum",
+    "Solihull",
+    "Sutton Coldfield",
+    "Edgbaston",
+    "Digbeth",
+    "Bournville",
+    "NEC",
+    "Utilita Arena",
+    "bp pulse LIVE",
+    "Resorts World Arena",
+    "Birmingham Hippodrome",
+    "Symphony Hall",
+    "Cadbury World",
+    "Bullring",
+    "Villa Park",
+    "Mailbox Birmingham"
+   ],
+   "neg": "Birmingham,? (?:AL|Alabama|Michigan)",
+   "ctx": null
+  },
+  {
+   "id": "bradford",
+   "name": "Bradford",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "city",
+   "terms": [
+    "Bradford",
+    "Saltaire",
+    "Ilkley"
+   ],
+   "neg": "Bradford on Avon|Bradford-on-Avon",
+   "ctx": null
+  },
+  {
+   "id": "brighton",
+   "name": "Brighton & Hove",
+   "nation": "England",
+   "region": "South East",
+   "kind": "city",
+   "terms": [
+    "Brighton",
+    "Hove",
+    "i360",
+    "Brighton Pier",
+    "Brighton Dome",
+    "Amex Stadium",
+    "Royal Pavilion"
+   ],
+   "neg": "New Brighton|Brighton,? (?:MA|MI|CO|Victoria|Melbourne)",
+   "ctx": null
+  },
+  {
+   "id": "bristol",
+   "name": "Bristol",
+   "nation": "England",
+   "region": "South West",
+   "kind": "city",
+   "terms": [
+    "Bristol",
+    "Clifton",
+    "Bristol Zoo",
+    "Wild Place",
+    "SS Great Britain",
+    "Ashton Gate",
+    "Bristol Beacon",
+    "Cabot Circus",
+    "Cribbs Causeway",
+    "We The Curious",
+    "Aerospace Bristol"
+   ],
+   "neg": "Bristol,? (?:CT|TN|VA|Connecticut|Tennessee|Virginia)|Bristol Myers",
+   "ctx": null
+  },
+  {
+   "id": "cambridge",
+   "name": "Cambridge",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "city",
+   "terms": [
+    "Cambridge",
+    "King's College Cambridge",
+    "Cambridge Corn Exchange",
+    "Duxford"
+   ],
+   "neg": "Cambridge,? (?:MA|Massachusetts|Ontario)|Cambridge Analytica|Cambridge Audio|Cambridge Satchel|Cambridge Dictionary",
+   "ctx": null
+  },
+  {
+   "id": "canterbury",
+   "name": "Canterbury",
+   "nation": "England",
+   "region": "South East",
+   "kind": "city",
+   "terms": [
+    "Canterbury",
+    "Canterbury Cathedral",
+    "Marlowe Theatre"
+   ],
+   "neg": "Canterbury,? (?:NZ|New Zealand)|Canterbury of New Zealand",
+   "ctx": null
+  },
+  {
+   "id": "carlisle",
+   "name": "Carlisle",
+   "nation": "England",
+   "region": "North West",
+   "kind": "city",
+   "terms": [
+    "Carlisle"
+   ],
+   "neg": "Carlisle,? (?:PA|Pennsylvania)|Belinda Carlisle",
+   "ctx": null
+  },
+  {
+   "id": "chelmsford",
+   "name": "Chelmsford",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "city",
+   "terms": [
+    "Chelmsford"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "chester",
+   "name": "Chester",
+   "nation": "England",
+   "region": "North West",
+   "kind": "city",
+   "terms": [
+    "Chester",
+    "Chester Zoo",
+    "Chester Racecourse"
+   ],
+   "neg": "Chester,? (?:PA|VA|NJ)|Chester Bennington|Chester-le-Street|Port Chester",
+   "ctx": null
+  },
+  {
+   "id": "chichester",
+   "name": "Chichester",
+   "nation": "England",
+   "region": "South East",
+   "kind": "city",
+   "terms": [
+    "Chichester",
+    "Goodwood",
+    "Chichester Festival Theatre"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "colchester",
+   "name": "Colchester",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "city",
+   "terms": [
+    "Colchester",
+    "Colchester Zoo"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "coventry",
+   "name": "Coventry",
+   "nation": "England",
+   "region": "West Midlands",
+   "kind": "city",
+   "terms": [
+    "Coventry",
+    "Coventry Building Society Arena",
+    "CBS Arena",
+    "Coventry Cathedral"
+   ],
+   "neg": "Coventry,? (?:RI|CT)",
+   "ctx": null
+  },
+  {
+   "id": "derby",
+   "name": "Derby",
+   "nation": "England",
+   "region": "East Midlands",
+   "kind": "city",
+   "terms": [
+    "Derby",
+    "Pride Park",
+    "Derby Arena"
+   ],
+   "neg": "Kentucky Derby|Epsom Derby|the Derby\\b|Derby Day|demolition derby|roller derby|derby (?:shoes?|boots?|hat)|Derby,? (?:KS|CT)|derby match|local derby|Manchester derby|Merseyside derby",
+   "ctx": null
+  },
+  {
+   "id": "doncaster",
+   "name": "Doncaster",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "city",
+   "terms": [
+    "Doncaster",
+    "Doncaster Racecourse",
+    "Yorkshire Wildlife Park"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "durham",
+   "name": "Durham",
+   "nation": "England",
+   "region": "North East",
+   "kind": "city",
+   "terms": [
+    "Durham",
+    "Durham Cathedral",
+    "Beamish"
+   ],
+   "neg": "Durham,? (?:NC|North Carolina|NH)",
+   "ctx": null
+  },
+  {
+   "id": "ely",
+   "name": "Ely",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "city",
+   "terms": [
+    "Ely",
+    "Ely Cathedral"
+   ],
+   "neg": "",
+   "ctx": "\\b(?:in|to|of|near|at|visit|from)\\s+Ely\\b|Ely Cathedral|\\bEly,\\s*Cambridgeshire"
+  },
+  {
+   "id": "exeter",
+   "name": "Exeter",
+   "nation": "England",
+   "region": "South West",
+   "kind": "city",
+   "terms": [
+    "Exeter",
+    "Exeter Cathedral",
+    "Sandy Park"
+   ],
+   "neg": "Exeter,? (?:NH|New Hampshire)",
+   "ctx": null
+  },
+  {
+   "id": "gloucester",
+   "name": "Gloucester",
+   "nation": "England",
+   "region": "South West",
+   "kind": "city",
+   "terms": [
+    "Gloucester",
+    "Kingsholm",
+    "Gloucester Quays"
+   ],
+   "neg": "Gloucester,? (?:MA|Massachusetts|VA)|Duke of Gloucester",
+   "ctx": null
+  },
+  {
+   "id": "hereford",
+   "name": "Hereford",
+   "nation": "England",
+   "region": "West Midlands",
+   "kind": "city",
+   "terms": [
+    "Hereford"
+   ],
+   "neg": "Hereford (?:cattle|cow|beef|bull)s?",
+   "ctx": null
+  },
+  {
+   "id": "hull",
+   "name": "Hull",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "city",
+   "terms": [
+    "Kingston upon Hull",
+    "Hull",
+    "The Deep",
+    "Hull New Theatre",
+    "MKM Stadium"
+   ],
+   "neg": "\\bhull (?:cleaning|paint)|boat hull|Hull,? (?:MA|Quebec)",
+   "ctx": "\\bHull\\b(?! (?:paint|cleaner))|Kingston upon Hull|The Deep\\b"
+  },
+  {
+   "id": "lancaster",
+   "name": "Lancaster",
+   "nation": "England",
+   "region": "North West",
+   "kind": "city",
+   "terms": [
+    "Lancaster",
+    "Lancaster Castle"
+   ],
+   "neg": "Lancaster,? (?:PA|CA|Pennsylvania|California|OH)|Burt Lancaster|Lancaster bomber|Lancaster (?:Gate|Hotel London)",
+   "ctx": null
+  },
+  {
+   "id": "leeds",
+   "name": "Leeds",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "city",
+   "terms": [
+    "Leeds",
+    "Headingley",
+    "Elland Road",
+    "First Direct Arena",
+    "Harewood House",
+    "Leeds Grand Theatre",
+    "Royal Armouries"
+   ],
+   "neg": "Leeds Castle",
+   "ctx": null
+  },
+  {
+   "id": "leicester",
+   "name": "Leicester",
+   "nation": "England",
+   "region": "East Midlands",
+   "kind": "city",
+   "terms": [
+    "Leicester",
+    "King Power Stadium",
+    "Curve Leicester",
+    "National Space Centre",
+    "Welford Road"
+   ],
+   "neg": "Leicester Square",
+   "ctx": null
+  },
+  {
+   "id": "lichfield",
+   "name": "Lichfield",
+   "nation": "England",
+   "region": "West Midlands",
+   "kind": "city",
+   "terms": [
+    "Lichfield",
+    "Lichfield Cathedral"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "lincoln",
+   "name": "Lincoln",
+   "nation": "England",
+   "region": "East Midlands",
+   "kind": "city",
+   "terms": [
+    "Lincoln",
+    "Lincoln Cathedral",
+    "Lincoln Castle"
+   ],
+   "neg": "Abraham Lincoln|Lincoln (?:Navigator|Continental|Aviator|Corsair|Nautilus|Center|Memorial)|Lincoln,? (?:NE|Nebraska)|Lincolnshire Poacher",
+   "ctx": null
+  },
+  {
+   "id": "liverpool",
+   "name": "Liverpool",
+   "nation": "England",
+   "region": "North West",
+   "kind": "city",
+   "terms": [
+    "Liverpool",
+    "Anfield",
+    "Goodison",
+    "M&S Bank Arena",
+    "Liverpool Empire",
+    "Albert Dock",
+    "Cavern Club",
+    "Royal Albert Dock",
+    "Merseyside",
+    "Aintree"
+   ],
+   "neg": "Liverpool Street|Liverpool,? (?:NSW|Sydney|NY)",
+   "ctx": null
+  },
+  {
+   "id": "london",
+   "name": "London",
+   "nation": "England",
+   "region": "London",
+   "kind": "city",
+   "terms": [
+    "London",
+    "City of London",
+    "Westminster"
+   ],
+   "neg": "New London|London,? (?:Ontario|ON|Ohio|Kentucky|KY)|London Road|London Colney",
+   "ctx": null
+  },
+  {
+   "id": "manchester",
+   "name": "Manchester",
+   "nation": "England",
+   "region": "North West",
+   "kind": "city",
+   "terms": [
+    "Manchester",
+    "Old Trafford",
+    "Etihad Stadium",
+    "AO Arena",
+    "Co-op Live",
+    "Manchester Arena",
+    "Palace Theatre Manchester",
+    "Opera House Manchester",
+    "Trafford Centre",
+    "MediaCity"
+   ],
+   "neg": "Manchester,? (?:NH|New Hampshire|CT|VT)",
+   "ctx": null
+  },
+  {
+   "id": "salford",
+   "name": "Salford",
+   "nation": "England",
+   "region": "North West",
+   "kind": "city",
+   "terms": [
+    "Salford",
+    "Salford Quays",
+    "The Lowry"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "miltonkeynes",
+   "name": "Milton Keynes",
+   "nation": "England",
+   "region": "South East",
+   "kind": "city",
+   "terms": [
+    "Milton Keynes",
+    "Bletchley Park",
+    "Xscape Milton Keynes",
+    "Stadium MK"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "newcastle",
+   "name": "Newcastle upon Tyne",
+   "nation": "England",
+   "region": "North East",
+   "kind": "city",
+   "terms": [
+    "Newcastle",
+    "Newcastle upon Tyne",
+    "Gateshead",
+    "St James' Park",
+    "Utilita Arena Newcastle",
+    "Theatre Royal Newcastle",
+    "Sage Gateshead",
+    "Glasshouse International",
+    "Metrocentre",
+    "Tyneside"
+   ],
+   "neg": "Newcastle,? (?:NSW|Australia|New South Wales)|Newcastle-under-Lyme|Newcastle under Lyme|Newcastle Emlyn|Newcastle,? (?:County Down|Co\\.? Down)",
+   "ctx": null
+  },
+  {
+   "id": "norwich",
+   "name": "Norwich",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "city",
+   "terms": [
+    "Norwich",
+    "Carrow Road",
+    "Norwich Theatre Royal"
+   ],
+   "neg": "Norwich,? (?:CT|Connecticut)",
+   "ctx": null
+  },
+  {
+   "id": "nottingham",
+   "name": "Nottingham",
+   "nation": "England",
+   "region": "East Midlands",
+   "kind": "city",
+   "terms": [
+    "Nottingham",
+    "Trent Bridge",
+    "City Ground",
+    "Motorpoint Arena Nottingham",
+    "Theatre Royal Nottingham",
+    "Wollaton Hall",
+    "Sherwood Forest"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "oxford",
+   "name": "Oxford",
+   "nation": "England",
+   "region": "South East",
+   "kind": "city",
+   "terms": [
+    "Oxford",
+    "Blenheim Palace",
+    "Bicester Village",
+    "Ashmolean",
+    "New Theatre Oxford"
+   ],
+   "neg": "Oxford (?:shoes?|shirts?|bags?|blue|comma|University Press|English Dictionary|Dictionary)|Oxford,? (?:MS|OH|Mississippi)|Oxford Street",
+   "ctx": null
+  },
+  {
+   "id": "peterborough",
+   "name": "Peterborough",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "city",
+   "terms": [
+    "Peterborough"
+   ],
+   "neg": "Peterborough,? (?:Ontario|ON|NH)",
+   "ctx": null
+  },
+  {
+   "id": "plymouth",
+   "name": "Plymouth",
+   "nation": "England",
+   "region": "South West",
+   "kind": "city",
+   "terms": [
+    "Plymouth",
+    "Plymouth Hoe",
+    "National Marine Aquarium",
+    "Theatre Royal Plymouth",
+    "Home Park"
+   ],
+   "neg": "Plymouth,? (?:MA|Massachusetts|MN|Montserrat)|Plymouth (?:Rock|Argyle Gin)",
+   "ctx": null
+  },
+  {
+   "id": "portsmouth",
+   "name": "Portsmouth",
+   "nation": "England",
+   "region": "South East",
+   "kind": "city",
+   "terms": [
+    "Portsmouth",
+    "Southsea",
+    "Gunwharf Quays",
+    "Spinnaker Tower",
+    "Fratton Park",
+    "Portsmouth Historic Dockyard"
+   ],
+   "neg": "Portsmouth,? (?:NH|VA|New Hampshire|Virginia|Dominica)",
+   "ctx": null
+  },
+  {
+   "id": "preston",
+   "name": "Preston",
+   "nation": "England",
+   "region": "North West",
+   "kind": "city",
+   "terms": [
+    "Preston",
+    "Deepdale"
+   ],
+   "neg": "Preston,? (?:Brighton|Dorset|Weymouth)|Preston Park|Preston Bisset",
+   "ctx": null
+  },
+  {
+   "id": "ripon",
+   "name": "Ripon",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "city",
+   "terms": [
+    "Ripon",
+    "Ripon Cathedral",
+    "Fountains Abbey",
+    "Lightwater Valley"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "stalbans",
+   "name": "St Albans",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "city",
+   "terms": [
+    "St Albans",
+    "St. Albans",
+    "Verulamium"
+   ],
+   "neg": "St\\.? Albans,? (?:VT|WV)",
+   "ctx": null
+  },
+  {
+   "id": "salisbury",
+   "name": "Salisbury",
+   "nation": "England",
+   "region": "South West",
+   "kind": "city",
+   "terms": [
+    "Salisbury",
+    "Stonehenge",
+    "Salisbury Cathedral"
+   ],
+   "neg": "Salisbury steak|Salisbury,? (?:MD|NC|Zimbabwe)|Lord Salisbury",
+   "ctx": null
+  },
+  {
+   "id": "sheffield",
+   "name": "Sheffield",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "city",
+   "terms": [
+    "Sheffield",
+    "Crucible Theatre",
+    "Utilita Arena Sheffield",
+    "Bramall Lane",
+    "Hillsborough",
+    "Meadowhall"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "southampton",
+   "name": "Southampton",
+   "nation": "England",
+   "region": "South East",
+   "kind": "city",
+   "terms": [
+    "Southampton",
+    "Mayflower Theatre",
+    "St Mary's Stadium",
+    "Paultons Park"
+   ],
+   "neg": "Southampton,? (?:NY|New York)|Southampton Row",
+   "ctx": null
+  },
+  {
+   "id": "southend",
+   "name": "Southend-on-Sea",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "city",
+   "terms": [
+    "Southend",
+    "Southend-on-Sea",
+    "Adventure Island",
+    "Southend Pier"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "stoke",
+   "name": "Stoke-on-Trent",
+   "nation": "England",
+   "region": "West Midlands",
+   "kind": "city",
+   "terms": [
+    "Stoke-on-Trent",
+    "Stoke on Trent",
+    "Stoke",
+    "Trentham",
+    "bet365 Stadium",
+    "Alton Towers",
+    "Wedgwood",
+    "Potteries"
+   ],
+   "neg": "Stoke Mandeville|Stoke Newington|Stoke Poges|Stoke Park|Stoke Gifford|Stoke Bishop|Stoke Climsland|Stoke Damerel",
+   "ctx": "Stoke-on-Trent|Stoke on Trent|Stoke City|\\bin Stoke\\b|Trentham|bet365 Stadium|Alton Towers|Potteries"
+  },
+  {
+   "id": "sunderland",
+   "name": "Sunderland",
+   "nation": "England",
+   "region": "North East",
+   "kind": "city",
+   "terms": [
+    "Sunderland",
+    "Stadium of Light",
+    "Sunderland Empire"
+   ],
+   "neg": "Sunderland,? (?:Ontario|MA)",
+   "ctx": null
+  },
+  {
+   "id": "truro",
+   "name": "Truro",
+   "nation": "England",
+   "region": "South West",
+   "kind": "city",
+   "terms": [
+    "Truro",
+    "Hall for Cornwall"
+   ],
+   "neg": "Truro,? (?:Nova Scotia|NS|MA)",
+   "ctx": null
+  },
+  {
+   "id": "wakefield",
+   "name": "Wakefield",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "city",
+   "terms": [
+    "Wakefield",
+    "The Hepworth Wakefield",
+    "Yorkshire Sculpture Park"
+   ],
+   "neg": "Wakefield,? (?:MA|RI|Quebec)",
+   "ctx": null
+  },
+  {
+   "id": "wells",
+   "name": "Wells",
+   "nation": "England",
+   "region": "South West",
+   "kind": "city",
+   "terms": [
+    "Wells",
+    "Wells Cathedral",
+    "Wookey Hole"
+   ],
+   "neg": "Wells Fargo|H\\.? ?G\\.? Wells|Tunbridge Wells|Wells-next-the-Sea|Llandrindod Wells|Builth Wells",
+   "ctx": "\\b(?:in|to|of|near|at|visit|from)\\s+Wells\\b|Wells Cathedral|\\bWells,\\s*Somerset|Wookey Hole"
+  },
+  {
+   "id": "winchester",
+   "name": "Winchester",
+   "nation": "England",
+   "region": "South East",
+   "kind": "city",
+   "terms": [
+    "Winchester",
+    "Winchester Cathedral",
+    "Marwell Zoo"
+   ],
+   "neg": "Winchester,? (?:VA|KY|MA)|Winchester rifle",
+   "ctx": null
+  },
+  {
+   "id": "wolverhampton",
+   "name": "Wolverhampton",
+   "nation": "England",
+   "region": "West Midlands",
+   "kind": "city",
+   "terms": [
+    "Wolverhampton",
+    "Wolves",
+    "Molineux",
+    "Wolverhampton Grand Theatre"
+   ],
+   "neg": "",
+   "ctx": "Wolverhampton|Molineux|Wolves (?:FC|tickets|match|v |vs)"
+  },
+  {
+   "id": "worcester",
+   "name": "Worcester",
+   "nation": "England",
+   "region": "West Midlands",
+   "kind": "city",
+   "terms": [
+    "Worcester",
+    "Worcester Cathedral",
+    "New Road Worcester"
+   ],
+   "neg": "Worcester(?:shire)? sauce|Worcester,? (?:MA|Massachusetts)|Worcester Park|Worcester Bosch",
+   "ctx": null
+  },
+  {
+   "id": "york",
+   "name": "York",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "city",
+   "terms": [
+    "York",
+    "York Minster",
+    "Jorvik",
+    "York Racecourse",
+    "Castle Howard",
+    "Shambles"
+   ],
+   "neg": "New York|York,? (?:PA|Pennsylvania|Maine|ME|Western Australia)|Duke of York|York Peppermint|Yorkshire|York (?:Multigym|Fitness|Bench|Barbell|Weights?)",
+   "ctx": null
+  },
+  {
+   "id": "aberdeen",
+   "name": "Aberdeen",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "city",
+   "terms": [
+    "Aberdeen",
+    "Aberdeenshire",
+    "Pittodrie",
+    "P&J Live",
+    "His Majesty's Theatre Aberdeen",
+    "Balmoral Castle"
+   ],
+   "neg": "Aberdeen,? (?:MD|SD|WA|NC|Hong Kong)|Aberdeen Angus|Aberdeen Standard|abrdn",
+   "ctx": null
+  },
+  {
+   "id": "dundee",
+   "name": "Dundee",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "city",
+   "terms": [
+    "Dundee",
+    "V&A Dundee",
+    "RRS Discovery",
+    "Dens Park",
+    "Tannadice"
+   ],
+   "neg": "Crocodile Dundee|Dundee,? (?:IL|NY|South Africa)|Dundee cake|Dundee marmalade",
+   "ctx": null
+  },
+  {
+   "id": "dunfermline",
+   "name": "Dunfermline",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "city",
+   "terms": [
+    "Dunfermline",
+    "East End Park"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "edinburgh",
+   "name": "Edinburgh",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "city",
+   "terms": [
+    "Edinburgh",
+    "Edinburgh Castle",
+    "Murrayfield",
+    "Holyrood",
+    "Royal Mile",
+    "Edinburgh Fringe",
+    "Edinburgh Zoo",
+    "Usher Hall",
+    "Edinburgh Playhouse",
+    "Leith",
+    "Royal Yacht Britannia",
+    "Hogmanay"
+   ],
+   "neg": "Duke of Edinburgh|Edinburgh,? (?:IN|Indiana)|Edinburgh Gin|Edinburgh Woollen Mill",
+   "ctx": null
+  },
+  {
+   "id": "glasgow",
+   "name": "Glasgow",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "city",
+   "terms": [
+    "Glasgow",
+    "OVO Hydro",
+    "The Hydro",
+    "SEC Glasgow",
+    "SEC Armadillo",
+    "Hampden",
+    "Ibrox",
+    "Celtic Park",
+    "Kelvingrove",
+    "King's Theatre Glasgow",
+    "Barrowland",
+    "TRNSMT",
+    "Paisley",
+    "Braehead",
+    "Loch Lomond"
+   ],
+   "neg": "Glasgow,? (?:KY|MT|Kentucky|Montana)",
+   "ctx": null
+  },
+  {
+   "id": "inverness",
+   "name": "Inverness",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "city",
+   "terms": [
+    "Inverness",
+    "Loch Ness",
+    "Eden Court",
+    "Culloden",
+    "Urquhart Castle"
+   ],
+   "neg": "Inverness,? (?:FL|CA|Nova Scotia)",
+   "ctx": null
+  },
+  {
+   "id": "perth",
+   "name": "Perth",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "city",
+   "terms": [
+    "Perth",
+    "Perthshire",
+    "Scone Palace",
+    "Gleneagles",
+    "Pitlochry",
+    "Crieff",
+    "Perth Concert Hall",
+    "Perth Racecourse"
+   ],
+   "neg": "Perth,? (?:WA|Western Australia|Australia|Amboy|Ontario)|Perth (?:Mint|Scorchers|Wildcats|Glory|Airport|Zoo|Arena)|\\bWA\\b",
+   "ctx": null
+  },
+  {
+   "id": "stirling",
+   "name": "Stirling",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "city",
+   "terms": [
+    "Stirling",
+    "Stirling Castle",
+    "Wallace Monument",
+    "Bannockburn",
+    "Kelpies",
+    "Falkirk"
+   ],
+   "neg": "Stirling Moss|Stirling,? (?:NJ|Australia)|Stirling engine|Raheem Sterling",
+   "ctx": null
+  },
+  {
+   "id": "bangor_w",
+   "name": "Bangor (Gwynedd)",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "city",
+   "terms": [
+    "Bangor",
+    "Menai Bridge",
+    "Anglesey",
+    "Snowdonia",
+    "Eryri",
+    "Zip World"
+   ],
+   "neg": "Bangor,?\\s*(?:County Down|Co\\.? Down|Northern Ireland|NI\\b|Maine|ME\\b)",
+   "ctx": "Bangor,?\\s*(?:Gwynedd|North Wales|Wales)|Bangor University|Menai Bridge|Anglesey|Snowdonia|Eryri|Zip World"
+  },
+  {
+   "id": "cardiff",
+   "name": "Cardiff",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "city",
+   "terms": [
+    "Cardiff",
+    "Principality Stadium",
+    "Millennium Stadium",
+    "Wales Millennium Centre",
+    "Cardiff Castle",
+    "Cardiff Bay",
+    "Utilita Arena Cardiff",
+    "Barry Island",
+    "Penarth",
+    "St Fagans"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "newport_w",
+   "name": "Newport (Wales)",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "city",
+   "terms": [
+    "Newport",
+    "Celtic Manor",
+    "Rodney Parade",
+    "ICC Wales"
+   ],
+   "neg": "Newport,?\\s*(?:Isle of Wight|IoW|RI|Rhode Island|Beach|News|Pagnell|Shropshire|Essex|Pembrokeshire|Oregon|Kentucky)|Newport (?:Beach|News|Pagnell|cigarettes)",
+   "ctx": "Newport,?\\s*(?:Wales|Gwent|South Wales)|Newport County|Celtic Manor|Rodney Parade|ICC Wales|\\bin Newport\\b"
+  },
+  {
+   "id": "stasaph",
+   "name": "St Asaph",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "city",
+   "terms": [
+    "St Asaph",
+    "St. Asaph",
+    "Bodelwyddan Castle"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "stdavids",
+   "name": "St Davids",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "city",
+   "terms": [
+    "St Davids",
+    "St David's",
+    "St. Davids",
+    "Pembrokeshire Coast",
+    "Oakwood Theme Park",
+    "Folly Farm"
+   ],
+   "neg": "St David'?s Day|St David'?s (?:Hall|Centre|Shopping)|St David'?s,? (?:Cardiff|PA)",
+   "ctx": null
+  },
+  {
+   "id": "swansea",
+   "name": "Swansea",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "city",
+   "terms": [
+    "Swansea",
+    "Gower",
+    "Mumbles",
+    "Swansea.com Stadium",
+    "Swansea Arena",
+    "Swansea Grand Theatre"
+   ],
+   "neg": "Swansea,? (?:MA|NSW|Tasmania|Australia)",
+   "ctx": null
+  },
+  {
+   "id": "wrexham",
+   "name": "Wrexham",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "city",
+   "terms": [
+    "Wrexham",
+    "Racecourse Ground",
+    "STōK Cae Ras",
+    "Llangollen"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "armagh",
+   "name": "Armagh",
+   "nation": "Northern Ireland",
+   "region": "Northern Ireland",
+   "kind": "city",
+   "terms": [
+    "Armagh",
+    "County Armagh",
+    "Armagh Planetarium",
+    "Navan Fort"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "bangor_ni",
+   "name": "Bangor (County Down)",
+   "nation": "Northern Ireland",
+   "region": "Northern Ireland",
+   "kind": "city",
+   "terms": [
+    "Bangor"
+   ],
+   "neg": "",
+   "ctx": "Bangor,?\\s*(?:County Down|Co\\.? Down|Northern Ireland|NI\\b)|Bangor Marina|Pickie"
+  },
+  {
+   "id": "belfast",
+   "name": "Belfast",
+   "nation": "Northern Ireland",
+   "region": "Northern Ireland",
+   "kind": "city",
+   "terms": [
+    "Belfast",
+    "Titanic Belfast",
+    "SSE Arena",
+    "Waterfront Hall",
+    "Grand Opera House Belfast",
+    "Windsor Park",
+    "Kingspan Stadium",
+    "Ulster Museum",
+    "Giant's Causeway",
+    "Causeway Coast"
+   ],
+   "neg": "Belfast,? (?:Maine|ME)|Belfast sink",
+   "ctx": null
+  },
+  {
+   "id": "derry",
+   "name": "Derry / Londonderry",
+   "nation": "Northern Ireland",
+   "region": "Northern Ireland",
+   "kind": "city",
+   "terms": [
+    "Derry",
+    "Londonderry",
+    "Derry~Londonderry",
+    "Derry City",
+    "Guildhall Derry",
+    "Peace Bridge"
+   ],
+   "neg": "Londonderry,? (?:NH|VT)|Derry,? (?:NH|PA)|Derry Girls",
+   "ctx": null
+  },
+  {
+   "id": "lisburn",
+   "name": "Lisburn",
+   "nation": "Northern Ireland",
+   "region": "Northern Ireland",
+   "kind": "city",
+   "terms": [
+    "Lisburn",
+    "Hillsborough Castle"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "newry",
+   "name": "Newry",
+   "nation": "Northern Ireland",
+   "region": "Northern Ireland",
+   "kind": "city",
+   "terms": [
+    "Newry",
+    "Mourne Mountains",
+    "Mournes",
+    "Slieve Donard"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "cornwall",
+   "name": "Cornwall",
+   "nation": "England",
+   "region": "South West",
+   "kind": "region",
+   "terms": [
+    "Cornwall",
+    "Cornish",
+    "Newquay",
+    "St Ives",
+    "Falmouth",
+    "Penzance",
+    "Isles of Scilly",
+    "Padstow",
+    "Eden Project",
+    "Lost Gardens of Heligan",
+    "Minack",
+    "Land's End",
+    "St Michael's Mount",
+    "Bude",
+    "Fowey",
+    "Looe"
+   ],
+   "neg": "Cornwall,? (?:Ontario|ON|NY|CT)|Cornish pasty|Cornish hen",
+   "ctx": null
+  },
+  {
+   "id": "devon",
+   "name": "Devon",
+   "nation": "England",
+   "region": "South West",
+   "kind": "region",
+   "terms": [
+    "Devon",
+    "Torquay",
+    "Dartmoor",
+    "Exmoor",
+    "Ilfracombe",
+    "Paignton",
+    "Dartmouth",
+    "Woolacombe",
+    "Salcombe",
+    "Croyde",
+    "Sidmouth",
+    "English Riviera"
+   ],
+   "neg": "Devon (?:cream|rex)|Devon,? (?:PA|Alberta)",
+   "ctx": null
+  },
+  {
+   "id": "dorset",
+   "name": "Dorset",
+   "nation": "England",
+   "region": "South West",
+   "kind": "region",
+   "terms": [
+    "Dorset",
+    "Bournemouth",
+    "Poole",
+    "Weymouth",
+    "Jurassic Coast",
+    "Lyme Regis",
+    "Swanage",
+    "Sandbanks",
+    "Durdle Door"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "somerset",
+   "name": "Somerset",
+   "nation": "England",
+   "region": "South West",
+   "kind": "region",
+   "terms": [
+    "Somerset",
+    "Taunton",
+    "Weston-super-Mare",
+    "Glastonbury",
+    "Cheddar",
+    "Minehead",
+    "Exmoor",
+    "Longleat"
+   ],
+   "neg": "Somerset (?:House|Maugham)|Somerset,? (?:NJ|PA|KY|Bermuda)|Glastonbury (?:CT|tickets? resale)",
+   "ctx": null
+  },
+  {
+   "id": "cotswolds",
+   "name": "Cotswolds",
+   "nation": "England",
+   "region": "South West",
+   "kind": "region",
+   "terms": [
+    "Cotswolds",
+    "Cotswold",
+    "Cheltenham",
+    "Bourton-on-the-Water",
+    "Stow-on-the-Wold",
+    "Cirencester",
+    "Broadway Tower"
+   ],
+   "neg": "Cheltenham Festival (?:of )?Literature",
+   "ctx": null
+  },
+  {
+   "id": "hampshire",
+   "name": "Hampshire",
+   "nation": "England",
+   "region": "South East",
+   "kind": "region",
+   "terms": [
+    "Hampshire",
+    "New Forest",
+    "Basingstoke",
+    "Andover",
+    "Fareham",
+    "Lymington",
+    "Beaulieu"
+   ],
+   "neg": "New Hampshire",
+   "ctx": null
+  },
+  {
+   "id": "iow",
+   "name": "Isle of Wight",
+   "nation": "England",
+   "region": "South East",
+   "kind": "region",
+   "terms": [
+    "Isle of Wight",
+    "IoW",
+    "Ryde",
+    "Cowes",
+    "Shanklin",
+    "Sandown",
+    "Ventnor",
+    "Needles"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "sussex",
+   "name": "Sussex",
+   "nation": "England",
+   "region": "South East",
+   "kind": "region",
+   "terms": [
+    "Sussex",
+    "Eastbourne",
+    "Hastings",
+    "Worthing",
+    "Bognor Regis",
+    "Lewes",
+    "Rye",
+    "Glyndebourne",
+    "South Downs"
+   ],
+   "neg": "Duke of Sussex|Duchess of Sussex|Sussex,? (?:NJ|DE|NB)|Prince Harry",
+   "ctx": null
+  },
+  {
+   "id": "kent",
+   "name": "Kent",
+   "nation": "England",
+   "region": "South East",
+   "kind": "region",
+   "terms": [
+    "Kent",
+    "Margate",
+    "Whitstable",
+    "Folkestone",
+    "Dover",
+    "Leeds Castle",
+    "Hever Castle",
+    "Ramsgate",
+    "Broadstairs",
+    "Tunbridge Wells",
+    "Maidstone"
+   ],
+   "neg": "Clark Kent|Kent,? (?:OH|WA|CT)|Duke of Kent|Kent State",
+   "ctx": null
+  },
+  {
+   "id": "surrey",
+   "name": "Surrey",
+   "nation": "England",
+   "region": "South East",
+   "kind": "region",
+   "terms": [
+    "Surrey",
+    "Guildford",
+    "Woking",
+    "Epsom",
+    "Thorpe Park",
+    "Chessington",
+    "RHS Wisley",
+    "Box Hill",
+    "Kingston upon Thames"
+   ],
+   "neg": "Surrey,? (?:BC|British Columbia)",
+   "ctx": null
+  },
+  {
+   "id": "berkshire",
+   "name": "Berkshire",
+   "nation": "England",
+   "region": "South East",
+   "kind": "region",
+   "terms": [
+    "Berkshire",
+    "Windsor",
+    "Legoland Windsor",
+    "Ascot",
+    "Newbury",
+    "Slough",
+    "Bracknell",
+    "Reading Festival",
+    "Reading FC"
+   ],
+   "neg": "Berkshire Hathaway|Windsor,? (?:Ontario|ON)|Windsor knot",
+   "ctx": null
+  },
+  {
+   "id": "norfolk",
+   "name": "Norfolk",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "region",
+   "terms": [
+    "Norfolk",
+    "Norfolk Broads",
+    "Great Yarmouth",
+    "Cromer",
+    "Sandringham",
+    "Holkham",
+    "Hunstanton"
+   ],
+   "neg": "Norfolk,? (?:VA|Virginia|Island)|Norfolk Southern|Duke of Norfolk",
+   "ctx": null
+  },
+  {
+   "id": "suffolk",
+   "name": "Suffolk",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "region",
+   "terms": [
+    "Suffolk",
+    "Ipswich",
+    "Southwold",
+    "Aldeburgh",
+    "Bury St Edmunds",
+    "Newmarket",
+    "Felixstowe"
+   ],
+   "neg": "Suffolk,? (?:VA|County)|Ipswich,? (?:MA|Queensland|QLD)",
+   "ctx": null
+  },
+  {
+   "id": "essex",
+   "name": "Essex",
+   "nation": "England",
+   "region": "East of England",
+   "kind": "region",
+   "terms": [
+    "Essex",
+    "Clacton",
+    "Colchester",
+    "Southend",
+    "Lakeside Thurrock",
+    "Saffron Walden"
+   ],
+   "neg": "Essex,? (?:NJ|MA|CT|VT)|Earl of Essex",
+   "ctx": null
+  },
+  {
+   "id": "yorkshire",
+   "name": "Yorkshire",
+   "nation": "England",
+   "region": "Yorkshire",
+   "kind": "region",
+   "terms": [
+    "Yorkshire",
+    "Yorkshire Dales",
+    "North York Moors",
+    "Whitby",
+    "Scarborough",
+    "Harrogate",
+    "Filey",
+    "Bridlington",
+    "Robin Hood's Bay",
+    "Haworth",
+    "Hebden Bridge"
+   ],
+   "neg": "Yorkshire (?:pudding|tea|terrier)s?",
+   "ctx": null
+  },
+  {
+   "id": "lakedistrict",
+   "name": "Lake District & Cumbria",
+   "nation": "England",
+   "region": "North West",
+   "kind": "region",
+   "terms": [
+    "Lake District",
+    "Cumbria",
+    "Windermere",
+    "Keswick",
+    "Ambleside",
+    "Kendal",
+    "Ullswater",
+    "Coniston",
+    "Grasmere",
+    "Bowness"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "peakdistrict",
+   "name": "Peak District & Derbyshire",
+   "nation": "England",
+   "region": "East Midlands",
+   "kind": "region",
+   "terms": [
+    "Peak District",
+    "Derbyshire",
+    "Buxton",
+    "Bakewell",
+    "Matlock",
+    "Chatsworth",
+    "Castleton",
+    "Gulliver's Kingdom"
+   ],
+   "neg": "Bakewell tart",
+   "ctx": null
+  },
+  {
+   "id": "northumberland",
+   "name": "Northumberland",
+   "nation": "England",
+   "region": "North East",
+   "kind": "region",
+   "terms": [
+    "Northumberland",
+    "Alnwick",
+    "Bamburgh",
+    "Hadrian's Wall",
+    "Holy Island",
+    "Lindisfarne",
+    "Kielder"
+   ],
+   "neg": "Northumberland (?:Avenue|Street|Road)|Duke of Northumberland",
+   "ctx": null
+  },
+  {
+   "id": "lancashire",
+   "name": "Lancashire",
+   "nation": "England",
+   "region": "North West",
+   "kind": "region",
+   "terms": [
+    "Lancashire",
+    "Blackpool",
+    "Lytham",
+    "Burnley",
+    "Blackburn",
+    "Pleasure Beach Blackpool",
+    "Blackpool Tower",
+    "Southport",
+    "Morecambe"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "cheshire",
+   "name": "Cheshire",
+   "nation": "England",
+   "region": "North West",
+   "kind": "region",
+   "terms": [
+    "Cheshire",
+    "Chester Zoo",
+    "Knutsford",
+    "Tatton Park",
+    "Macclesfield",
+    "Crewe",
+    "Warrington",
+    "Cheshire Oaks"
+   ],
+   "neg": "Cheshire cat|Cheshire,? (?:CT|Connecticut)",
+   "ctx": null
+  },
+  {
+   "id": "highlands",
+   "name": "Highlands & Islands",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "region",
+   "terms": [
+    "Scottish Highlands",
+    "the Highlands",
+    "Highlands and Islands",
+    "Isle of Skye",
+    "Skye",
+    "Hebrides",
+    "Orkney",
+    "Shetland",
+    "Isle of Arran",
+    "Isle of Mull",
+    "Islay",
+    "Fort William",
+    "Aviemore",
+    "Cairngorms",
+    "Oban",
+    "Ullapool",
+    "North Coast 500",
+    "NC500"
+   ],
+   "neg": "Highland (?:cattle|cow|coo|park)|Highland Park whisky|Highlands,? (?:NC|NJ|TX)",
+   "ctx": null
+  },
+  {
+   "id": "fife",
+   "name": "Fife",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "region",
+   "terms": [
+    "Fife",
+    "St Andrews",
+    "St. Andrews",
+    "Kirkcaldy",
+    "East Neuk",
+    "Anstruther"
+   ],
+   "neg": "St\\.? Andrews,? (?:Australia|NB|FL)",
+   "ctx": null
+  },
+  {
+   "id": "ayrshire",
+   "name": "Ayrshire",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "region",
+   "terms": [
+    "Ayrshire",
+    "Ayr",
+    "Troon",
+    "Turnberry",
+    "Largs",
+    "Kilmarnock",
+    "Culzean"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "borders",
+   "name": "Scottish Borders & D&G",
+   "nation": "Scotland",
+   "region": "Scotland",
+   "kind": "region",
+   "terms": [
+    "Scottish Borders",
+    "Dumfries",
+    "Galloway",
+    "Melrose",
+    "Kelso",
+    "Peebles",
+    "Jedburgh"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "northwales",
+   "name": "North Wales",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "region",
+   "terms": [
+    "North Wales",
+    "Llandudno",
+    "Conwy",
+    "Betws-y-Coed",
+    "Portmeirion",
+    "Zip World",
+    "Snowdon",
+    "Yr Wyddfa"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "westwales",
+   "name": "West Wales",
+   "nation": "Wales",
+   "region": "Wales",
+   "kind": "region",
+   "terms": [
+    "Pembrokeshire",
+    "Tenby",
+    "Carmarthenshire",
+    "Ceredigion",
+    "Aberystwyth",
+    "Brecon Beacons",
+    "Bannau Brycheiniog"
+   ],
+   "neg": "",
+   "ctx": null
+  },
+  {
+   "id": "antrim",
+   "name": "Antrim & Causeway Coast",
+   "nation": "Northern Ireland",
+   "region": "Northern Ireland",
+   "kind": "region",
+   "terms": [
+    "County Antrim",
+    "Causeway Coast",
+    "Giant's Causeway",
+    "Portrush",
+    "Bushmills",
+    "Ballycastle",
+    "Carrick-a-Rede",
+    "Dark Hedges"
+   ],
+   "neg": "Bushmills whiskey|Antrim,? (?:NH)",
+   "ctx": null
+  },
+  {
+   "id": "fermanagh",
+   "name": "Fermanagh & Tyrone",
+   "nation": "Northern Ireland",
+   "region": "Northern Ireland",
+   "kind": "region",
+   "terms": [
+    "Fermanagh",
+    "Enniskillen",
+    "Lough Erne",
+    "County Tyrone",
+    "Omagh"
+   ],
+   "neg": "",
+   "ctx": null
+  }
+ ]
+}
