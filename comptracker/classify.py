@@ -22,7 +22,8 @@ TAXONOMY = {
     "Fashion/Beauty": ["Jewellery/Watches", "Handbags/Accessories", "Skincare/Makeup", "Fragrance", "Haircare", "Clothing/Footwear"],
     "Food/Drink": ["Hampers/Food boxes", "Wine/Spirits/Beer", "Restaurant meals", "Snacks/Coffee/Treats"],
     "Family/Kids": ["Toys/Games/Crafts", "Baby/Nursery", "Pets", "Kids/School"],
-    "Sport/Fitness": ["Gym/Fitness", "Activewear", "Golf", "Outdoor/Camping/Walking", "Wellbeing/Recovery", "Memorabilia"],
+    "Golf": ["Golf trips/breaks", "Golf equipment", "Golf tickets/events", "Golf lessons/rounds"],
+    "Sport/Fitness": ["Gym/Fitness", "Activewear", "Outdoor/Camping/Walking", "Wellbeing/Recovery", "Memorabilia"],
     "Books/Music/Film": ["Books/Audiobooks", "Stationery/Journals", "Music/Vinyl", "Films/TV/Blu-ray", "Magazines/Comics"],
     "Gifts/Bundles": ["Advent calendars", "Seasonal bundles", "Gift sets/Goody bags"],
     "Other": ["Unclear"],
@@ -149,7 +150,7 @@ R("Home/Property", "Furniture/Interiors", r"\b(sofas?|couch|armchair|bed ?(?:fra
 # ------------------------------------------------------------------ Sport / fitness (before fashion)
 G("sport")
 R("Sport/Fitness", "Memorabilia", r"\b(memorabilia|signed\b.{0,40}\b(?:shirt|ball|boots|glove|bat|helmet|jersey)|replica\b.{0,40}\bhelmet|helmets?|match[- ]worn|autographed?)\b")
-R("Sport/Fitness", "Golf", r"\b(golf|golfer|golf clubs?|golf bag|driver|putter|irons?\b.{0,10}\bset|golf (?:day|break|lessons?|trolley|balls?)|prov1x?|titleist|callaway|taylormade|ping)\b", r"\b(cloud nine|ghd|hair|straightener|iron (?:out|man)|break|holiday|stay|tickets?|ryder|open championship)\b")
+# (golf has its own top-level category: see _golf() below)
 R("Sport/Fitness", "Gym/Fitness", r"\b(gym|fitness|workout|work-?out|yoga|pilates|peloton|treadmill|rowing machine|exercise bike|spin bike|dumb-?bells?|kettle-?bells?|weights?|resistance bands?|home gym|crossfit|boxing (?:gloves|bag|kit)|punch ?bag|personal train(?:er|ing)|online coaching|coaching|training plan|supplements?|protein|whey|creatine|smoothie maker|running machine|cross trainer|stepper|hoola|skipping|membership)\b", r"\b(fitbit|garmin|apple watch|tickets?)\b")
 R("Sport/Fitness", "Activewear", r"\b(activewear|sportswear|gymwear|leggings|sports bra|running (?:shoes|trainers|kit|gear)|football (?:kit|shirt|boots)|(?:rugby|cricket|tennis) (?:kit|racket|bat|shirt)|trainers|nike|adidas|puma|new balance|asics|under armour|lululemon|gymshark|sweaty betty|on running|hoka|brooks|skechers|reebok|fila|umbro|kit bundle)\b")
 R("Sport/Fitness", "Outdoor/Camping/Walking", r"\b(camping|tents?|sleeping bags?|rucksacks?|backpacks?|hiking|walking (?:boots|shoes|poles|gear|jacket)|walking|climbing|outdoor (?:gear|clothing|kit|jacket)|waterproof|gore-?tex|le chameau|barbour|hunter (?:boots|wellies)|wellies|wellington|fishing|angling|reel|daiwa|tackle|carp rod|fishing rod|surf(?:board|ing)?|wetsuit|paddle|ski (?:kit|jacket|gear)|snowboard|meindl|sprayway|berghaus|north face|patagonia|rab\b|craghoppers|regatta|trespass|lifeventure|trekking|compass|binoculars)\b", r"\b(tickets?|break|holiday|stay|hotel|cottage)\b")
@@ -187,6 +188,17 @@ R("Gifts/Bundles", "Advent calendars", r"\badvent\b")
 G("seasonal")
 R("Gifts/Bundles", "Seasonal bundles", r"\b(halloween|boo ?baskets?|boo box|spook\w*|pumpkin|autumn|winter (?:warm|warmth|wonder|bundle|gift|pamper)|christmas (?:bundle|box|hamper|gift|eve box|goodies|prizes|cheer|giveaway)|xmas|santa|festive|stocking (?:filler|fillers)|easter (?:egg|hamper|bundle|basket)|valentine'?s?|mother'?s day|father'?s day|bonfire|diwali|cosy (?:halloween|autumn|winter)|seasonal)\b")
 
+# ------------------------------------------------------------------ Golf (own category; car models / mini golf excluded)
+GOLF_NOT = r"\b(?:vw|volkswagen|new|used|my|the)\s+golf\b(?!\s+(?:break|club|course|day|lesson|round|bag|balls?|resort|holiday|trip))|\bgolf\s+(?:gti|gtd|gte|tdi|tsi|r\b|r-line|estate|mk ?\d|[5-8]\b|alltrack|cabriolet|plus|sv|hatch(?:back)?|match|eHybrid)|\b(?:mini|crazy|adventure|pirate|indoor mini|putt ?putt|swingers)[- ]golf\b|\bgolf (?:car(?:t)? (?:toy|lego))"
+GOLF_SIG = r"\bgolf(?:ing|ers?)?\b|\bryder cup\b|\bopen championship\b|\bthe open\b.{0,40}\b(?:royal|st andrews|troon|portrush|birkdale|hoylake|carnoustie|muirfield|lytham|sandwich|golf|championship)\b|\b(?:royal|st andrews|troon|portrush|birkdale|hoylake|carnoustie|muirfield|lytham)\b.{0,30}\bthe open\b|\bpga\b|\bdp world tour\b|\blpga\b|\bsolheim cup\b|\btitleist\b|\bcallaway\b|\btaylor ?made\b|\bsrixon\b|\bwilson staff\b|\bpro ?v1x?\b|\bgreen fees?\b|\btee times?\b|\b(?:ping|cobra|mizuno)\b.{0,25}\b(?:driver|putter|irons?|wedges?|woods?|hybrids?|clubs?)\b|\bfour-?balls?\b"
+def _golf(t):
+    tt = re.sub(GOLF_NOT, " ", t, flags=re.I)
+    if not re.search(GOLF_SIG, tt, re.I): return None
+    if re.search(r"\b(tickets?|hospitality|ryder cup|solheim cup|open championship|the open|pga|lpga|dp world tour|pro-?am|masters|championship|spectat\w+|grandstand|tournament)\b", tt, re.I) and not re.search(r"\b(?:pga (?:pro|professional)|lessons?)\b", tt, re.I): return "Golf tickets/events"
+    if re.search(r"\b(breaks?|stays?|resorts?|nights?|holidays?|trips?|getaways?|hotels?|lodge|escape|tour (?:to|of)|weekend)\b", tt, re.I): return "Golf trips/breaks"
+    if re.search(r"\b(lessons?|coaching|rounds?|green fees?|tee times?|four-?balls?|membership|golf days?|simulator|course|links|tuition|academy|driving range|pga (?:pro|professional)|fitting|experience|golf club\b(?!s)|golf for (?:two|three|four|\d))\b", tt, re.I): return "Golf lessons/rounds"
+    return "Golf equipment"
+
 # ------------------------------------------------------------------ rules that need computed sub-categories
 VANWORDS = r"\b(campervans?|motorhomes?|caravans?|pick-?ups?|transit|crafter|transporter|vans?|hilux|ranger|navara|l200|amarok|burstner|bürstner|bailey|elddis|auto-?trail|hymer|adria|coachman|knaus|dethleffs|chausson|benimar|autosleeper|horsebox)\b"
 def _vehicle(t):
@@ -211,14 +223,17 @@ def _grp(t, name):
     return None
 
 # evaluation order (specific before generic); ("fn", f) entries compute their own sub-category
-ORDER = ["money", "voucher", "property", "boats", "bikes", ("fn", "vehicle"), "holspecial", ("fn", "holiday"), "tickets", "media",
+ORDER = ["money", ("fn", "golf"), "voucher", "property", "boats", "bikes", ("fn", "vehicle"), "holspecial", ("fn", "holiday"), "tickets", "media",
          "restaurant", "daysout", "advent", "diy", "tech", "home", "sport", "family", "fashion", "food", "instant", "cashword", "seasonal"]
 
 def _match(t):
     if not t: return None
     for g in ORDER:
         if isinstance(g, tuple):
-            if g[1] == "vehicle":
+            if g[1] == "golf":
+                v = _golf(t)
+                if v: return "Golf", v
+            elif g[1] == "vehicle":
                 v = _vehicle(t)
                 if v: return "Cars", v
             else:

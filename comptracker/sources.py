@@ -9,6 +9,7 @@ REGISTRY = {}
 
 # Sources deliberately NOT collected (shown on the page's status table so nobody assumes they are covered).
 EXCLUDED = {
+    "Golf Monthly / Today's Golfer / bunkered": "Checked: no current public competitions listing (Golf Monthly's page only shows years-old entries; Today's Golfer has none; bunkered's page only links winners), so not collected.",
     "Radio: talkSPORT": "talkSPORT's robots.txt disallows automated access to its competitions pages, so it is not collected. (Its competitions are not listed here.)",
 }
 
@@ -878,6 +879,60 @@ def olive(ctx):
             if d[0] < now(): continue
             o["closes_at"], o["closes_precision"] = d
         keep.append(o)
+    return keep
+
+# ---------------------------------------------------------------- Golf publishers
+NGOLF = "https://www.northerngolfer.co.uk"
+
+@source("Northern Golfer", "publisher", NGOLF + "/category/competitions/",
+        "Regional golf magazine's competitions category (WordPress RSS; robots allow all). Golf rounds, breaks, equipment; free to enter.")
+def northern_golfer(ctx):
+    import html as _h
+    from email.utils import parsedate_to_datetime
+    r = ctx.get(NGOLF + "/category/competitions/feed/")
+    if not r: return []
+    out = []
+    for it in ET.fromstring(r.content).iter("item"):
+        title = clean(_h.unescape(it.findtext("title") or "")); link = clean(it.findtext("link") or "")
+        if not title or not link or not re.match(r"(?i)win\b", title): continue
+        try: pub = parsedate_to_datetime(it.findtext("pubDate"))
+        except Exception: pub = None
+        if pub and (now() - pub).days > 90: continue
+        out.append(rec(title=title, promoter="Northern Golfer", link=link, prize_desc=title, prize_value=prize_value_from_text(title),
+                       entry_type="free", entry_note="Free golf-magazine competition; closing date and terms are on the competition page.",
+                       skey=link))
+    dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("ngolf_detail", 15))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"])
+        if d:
+            if d[0] < now(): continue
+            o["closes_at"], o["closes_precision"] = d
+        keep.append(o)
+    return keep
+
+NCG = "https://www.nationalclubgolfer.com"
+
+@source("National Club Golfer", "publisher", NCG + "/competitions/",
+        "NCG's competitions listing (robots allow; feeds not used). Only entries whose page states a future closing date are kept.", allow_empty=True)
+def ncg(ctx):
+    r = ctx.get(NCG + "/competitions/")
+    if not r: return []
+    out = []; seen = set()
+    for a in soup(r).select('a[href*="/competitions/"]'):
+        h = a["href"]; link = h if h.startswith("http") else NCG + h
+        if re.search(r"/competitions/(?:competitions|ncg-competitions|search)?/?(?:\?|$)", link) or link in seen: continue
+        title = clean(re.sub(r"^Read full article\s*", "", a.get_text(" ")))
+        if not title or not re.search(r"(?i)\bwin\b|giveaway", title) or re.search(r"(?i)advent calendar", title): continue
+        seen.add(link)
+        out.append(rec(title=title, promoter="National Club Golfer", link=link, prize_desc=title, prize_value=prize_value_from_text(title),
+                       entry_type="free", entry_note="Free golf-magazine competition; terms on the page.", skey=link, image=img_url(a, NCG + "/")))
+    dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("ncg_detail", 15))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"])
+        if d and d[0] >= now():
+            o["closes_at"], o["closes_precision"] = d; keep.append(o)
     return keep
 
 # ================================================================ RADIO
