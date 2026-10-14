@@ -1,6 +1,6 @@
 """Pluggable per-source collectors. Add a new source by writing a function decorated with @source(...)
 returning a list of dicts (see FIELDS in collector.py). Each gets a Ctx (polite fetcher + cache)."""
-import re, json, urllib.parse, xml.etree.ElementTree as ET
+import os, re, json, urllib.parse, xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from .util import (LONDON, now, parse_date, infer_year, money, pence_or_pounds, prize_value_from_text, log, closing_from_text, is_closed_title)
@@ -916,24 +916,137 @@ NCG = "https://www.nationalclubgolfer.com"
 @source("National Club Golfer", "publisher", NCG + "/competitions/",
         "NCG's competitions listing (robots allow; feeds not used). Only entries whose page states a future closing date are kept.", allow_empty=True)
 def ncg(ctx):
-    r = ctx.get(NCG + "/competitions/")
-    if not r: return []
     out = []; seen = set()
-    for a in soup(r).select('a[href*="/competitions/"]'):
-        h = a["href"]; link = h if h.startswith("http") else NCG + h
-        if re.search(r"/competitions/(?:competitions|ncg-competitions|search)?/?(?:\?|$)", link) or link in seen: continue
-        title = clean(re.sub(r"^Read full article\s*", "", a.get_text(" ")))
-        if not title or not re.search(r"(?i)\bwin\b|giveaway", title) or re.search(r"(?i)advent calendar", title): continue
-        seen.add(link)
-        out.append(rec(title=title, promoter="National Club Golfer", link=link, prize_desc=title, prize_value=prize_value_from_text(title),
-                       entry_type="free", entry_note="Free golf-magazine competition; terms on the page.", skey=link, image=img_url(a, NCG + "/")))
+    for path in ("/competitions/", "/giveaways/"):          # NCG moved its prize posts to /giveaways/ in 2026
+        r = ctx.get(NCG + path)
+        if r: out += _ncg_cards(soup(r), path, seen)
     dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("ncg_detail", 15))
     keep = []
     for o in out:
-        d = dates.get(o["link"])
+        d = dates.get(o["link"]) or ("/giveaways/" in o["link"] and _yearless_closing(ctx, o["link"]))
         if d and d[0] >= now():
             o["closes_at"], o["closes_precision"] = d; keep.append(o)
     return keep
+
+_YL_RX = re.compile(r"clos(?:ing date|es)\W+(?:on\W+)?(?:the\W+)?(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day,?\s+)?"
+                    r"(?:(\d{1,2})(?:st|nd|rd|th)?\s+(" + "january|february|march|april|may|june|july|august|september|october|november|december" + r")"
+                    r"|(" + "january|february|march|april|may|june|july|august|september|october|november|december" + r")\s+(\d{1,2})(?:st|nd|rd|th)?)(?!,?\s*\d{4})", re.I)
+
+def yearless_date(text, ref=None):
+    """'closing date – Sunday, October 25th' (no year): the next such date within ~7 months of `ref` (end of day)."""
+    m = _YL_RX.search(text or "")
+    if not m: return None
+    day = int(m.group(1) or m.group(4)); mon = (m.group(2) or m.group(3)).lower()
+    months = ["january","february","march","april","may","june","july","august","september","october","november","december"]
+    ref = ref or now()
+    for y in (ref.year, ref.year + 1):
+        try: d = ref.replace(year=y, month=months.index(mon) + 1, day=day, hour=23, minute=59, second=0, microsecond=0)
+        except ValueError: return None
+        if d >= ref - timedelta(days=60): return (d, "date") if (d - ref).days < 75 else None   # giveaways run weeks, not months
+    return None
+
+def _yearless_closing(ctx, url):
+    c = ctx.cache_get("yl:" + url)
+    if c is None or (ctx.cache_age_hours("yl:" + url) or 0) > 72:
+        r = ctx.get(url)
+        if not r: return None
+        ss = soup(r)
+        for x in ss(["script", "style", "noscript"]): x.decompose()
+        d = yearless_date(clean(ss.get_text(" ")))
+        c = {"closes": d[0].isoformat() if d else None}; ctx.cache_put("yl:" + url, c)
+    return (datetime.fromisoformat(c["closes"]), "date") if c.get("closes") else None
+
+def _ncg_cards(s, path, seen):
+    out = []
+    for a in s.select('a[href*="%s"]' % path):
+        h = a["href"]; link = h if h.startswith("http") else NCG + h
+        if re.search(r"/(?:competitions|giveaways)/(?:competitions|ncg-competitions|search)?/?(?:\?|$)", link) or link in seen: continue
+        title = clean(re.sub(r"^(?:Read full article|Enter Now)\s*", "", a.get_text(" ")))
+        if not title or not re.search(r"(?i)\bwin\b|giveaway", title) or re.search(r"(?i)advent calendar", title): continue
+        seen.add(link)
+        out.append(rec(title=title, promoter="National Club Golfer", link=link, prize_desc=title, prize_value=prize_value_from_text(title),
+                       entry_type="free", entry_note="Free golf-magazine giveaway (online form; UK residents; brand/NCG marketing opt-ins are optional). Terms on the page.",
+                       skey=link, image=img_url(a, NCG + "/")))
+    return out
+
+TG = "https://www.todays-golfer.com"
+
+@source("Today's Golfer giveaways", "publisher", TG + "/giveaways/",
+        "Bauer golf magazine's giveaways listing (robots allow). Only entries whose page states a future closing date are kept.", allow_empty=True)
+def todays_golfer(ctx):
+    r = ctx.get(TG + "/giveaways/")
+    if not r: return []
+    out = []; seen = set()
+    for a in soup(r).select('a[href*="/giveaways/"]'):
+        h = a["href"].split("?")[0]; link = h if h.startswith("http") else TG + h
+        if re.search(r"/giveaways/?$", link) or link in seen: continue
+        title = clean(a.get_text(" "))
+        if len(title) < 12: title = clean(link.rstrip("/").rsplit("/", 1)[-1].replace("-", " ")).capitalize()
+        seen.add(link)
+        out.append(rec(title=title, promoter="Today's Golfer (H Bauer Publishing)", link=link, prize_desc=title, prize_value=prize_value_from_text(title),
+                       entry_type="free", entry_note="Free golf-magazine giveaway (online form, question to answer; UK residents 18+). Terms on the page.",
+                       skey=link, image=img_url(a, TG + "/")))
+    dates = detail_closing(ctx, [o["link"] for o in out], ctx.cap("tg_detail", 25))
+    keep = []
+    for o in out:
+        d = dates.get(o["link"]) or _yearless_closing(ctx, o["link"])
+        if d and d[0] >= now():
+            o["closes_at"], o["closes_precision"] = d; keep.append(o)
+    return keep
+
+GG = "https://www.gimmegiveaways.co.uk"
+_MON3 = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"]
+
+@source("Gimme Giveaways (golf prize draws)", "operator", GG + "/competitions/",
+        "Small golf-focused paid prize-draw operator (golf holidays, clubs, trolleys); own public listing, robots allow. "
+        "Paid tickets from about £1 with a free postal route on every draw.", direct=True, allow_empty=True)
+def gimme_giveaways(ctx):
+    r = ctx.get(GG + "/competitions/")
+    if not r: return []
+    out = []; ref = now()
+    for art in soup(r).select("article.comp"):
+        h = art.select_one("h4"); a = art.select_one("a.comp-link[href]") or art.select_one('a[href*="/competitions/"]')
+        if not h or not a: continue
+        title = clean(h.get_text()); txt = clean(art.get_text(" "))
+        cat = clean((art.select_one(".corner") or h).get_text()); cat = "" if cat == title or "headline" in cat.lower() else cat
+        m = re.search(r"Closes\s+\w{3}\s+(\d{1,2})\s+([A-Za-z]{3})", txt)
+        closes = None
+        if m and m.group(2).lower() in _MON3:
+            for y in (ref.year, ref.year + 1):
+                d = ref.replace(year=y, month=_MON3.index(m.group(2).lower()) + 1, day=int(m.group(1)), hour=21, minute=0, second=0, microsecond=0)
+                if d >= ref - timedelta(days=1): closes = d; break
+        pv = re.search(r"Prize value\s*£\s?([\d,]+)", txt); pr = re.search(r"From\s*£\s?(\d+(?:\.\d+)?)", txt)
+        sm = re.search(r"([\d,]+)\s*Tickets Sold\s*(\d+)\s*%", txt)
+        cost = float(pr.group(1)) if pr else None
+        out.append(rec(title="Win " + title if not title.lower().startswith("win") else title, promoter="Gimme Giveaways", link=a["href"],
+                       prize_desc=f"{title} (golf prize draw{': ' + cat if cat else ''})", prize_value=float(pv.group(1).replace(",", "")) if pv else None,
+                       entry_type="paid", entry_cost=cost, entry_cost_text=f"from £{cost:g}" if cost is not None else "",
+                       closes_at=closes, closes_precision="date" if closes else "",
+                       tickets_sold=int(sm.group(1).replace(",", "")) if sm else None, pct_sold=float(sm.group(2)) if sm else None,
+                       entry_note="Paid golf prize draw (tickets from about £1); free postal entry route on every draw.", skey=a["href"],
+                       image=img_url(art, GG + "/")))
+    return [o for o in out if not o["closes_at"] or o["closes_at"] > now()]
+
+# ---------------------------------------------------------------- curated (manually verified one-off finds)
+CURATED = os.path.join(os.path.dirname(__file__), "data", "curated.json")
+
+@source("Curated (manually verified)", "publisher", "https://github.com/Cannon28-LP/uk-competitions-tracker/blob/main/comptracker/data/curated.json",
+        "Hand-checked one-off competitions on the promoter's own page that no scraper covers (comptracker/data/curated.json). "
+        "Each has a closing date and drops off automatically once it passes.", direct=True, allow_empty=True)
+def curated(ctx):
+    try: rows = json.load(open(CURATED, encoding="utf-8"))["items"]
+    except (OSError, ValueError, KeyError): return []
+    out = []
+    for c in rows:
+        try: cl = datetime.fromisoformat(c["closes_at"])
+        except (KeyError, ValueError): continue
+        if cl < now(): continue
+        kw = {k: v for k, v in c.items() if k in ("title", "promoter", "link", "prize_desc", "prize_value", "entry_type", "entry_cost",
+                                                   "entry_cost_text", "entry_note", "tags", "image", "areas")}
+        kw.setdefault("prize_desc", c["title"])
+        if kw.get("prize_value") is None: kw["prize_value"] = prize_value_from_text(c["title"] + " " + kw["prize_desc"])
+        out.append(rec(closes_at=cl, closes_precision=c.get("closes_precision", "exact"), skey=c["link"], **kw))
+    return out
 
 # ================================================================ RADIO
 MONTH_RX = "january|february|march|april|may|june|july|august|september|october|november|december"

@@ -1306,7 +1306,23 @@
     "Andover",
     "Fareham",
     "Lymington",
-    "Beaulieu"
+    "Beaulieu",
+    "Old Thorns",
+    "Meon Valley",
+    "Botley Park",
+    "Liphook Golf Club",
+    "Brokenhurst Manor",
+    "Stoneham Golf Club",
+    "North Hants Golf Club",
+    "Blackmoor Golf Club",
+    "Rowlands Castle Golf Club",
+    "Dummer Golf Club",
+    "Test Valley Golf Club",
+    "Lee-on-the-Solent Golf Club",
+    "Royal Winchester Golf Club",
+    "Hockley Golf Club",
+    "Hayling Golf Club",
+    "Corhampton Golf Club"
    ],
    "neg": "New Hampshire",
    "ctx": null
@@ -1325,7 +1341,13 @@
     "Shanklin",
     "Sandown",
     "Ventnor",
-    "Needles"
+    "Needles",
+    "Osborne Golf Club",
+    "Freshwater Bay Golf Club",
+    "Westridge Golf Club",
+    "Newport (IoW) Golf Club",
+    "Wightlink",
+    "Red Funnel"
    ],
    "neg": "",
    "ctx": null

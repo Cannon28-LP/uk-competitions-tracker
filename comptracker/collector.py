@@ -275,7 +275,7 @@ def merge_and_store(db, fetcher, t0, summary=None):
         if util.CUR["cc"] == "uk" and "hampshire" not in tags and src_iow.is_hants(item): tags = list(tags) + ["hampshire"]
         if util.CUR["cc"] == "uk" and "london" not in tags and src_iow.is_london(item): tags = list(tags) + ["london"]
         if util.CUR["cc"] == "uk" and "birmingham" not in tags and src_iow.is_brum(item): tags = list(tags) + ["birmingham"]
-        if util.CUR["cc"] == "uk": item["areas"] = gazetteer.areas(item)   # UK cities/regions (Area filter)
+        if util.CUR["cc"] == "uk": item["areas"] = list(dict.fromkeys(gazetteer.areas(item) + [a for m in ms for a in (m.get("areas") or [])]))   # UK cities/regions (Area filter)
         if util.CUR["cc"] == "uk":
             for tg, fn in (("brighton", src_iow.is_brighton), ("bristol", src_iow.is_bristol), ("cornwall", src_iow.is_cornwall), ("scotland", src_iow.is_scotland)):
                 if tg not in tags and fn(item): tags = list(tags) + [tg]

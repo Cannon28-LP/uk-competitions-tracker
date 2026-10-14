@@ -9,7 +9,7 @@ from .util import now, prize_value_from_text, closing_from_text, parse_date
 
 IOW_RX = re.compile(r"(isle of wight|\bI\.?o\.?W\b|wightlink|red funnel|hovertravel|\bventnor\b|\bshanklin\b|\bsandown\b(?! park)|\bryde\b|\bcowes\b|"
                     r"robin hill|blackgang|the needles (?:landmark|attraction|park)|osborne house|tapnell|monkey haven|garlic farm|\bbembridge\b|"
-                    r"\bgodshill\b|\bseaview hotel|\bwight\b|\bislanders?\b.*\bwight)", re.I)
+                    r"\bgodshill\b|osborne golf|freshwater bay|westridge golf|\bseaview hotel|\bwight\b|\bislanders?\b.*\bwight)", re.I)
 
 def is_iow(it):
     return bool(IOW_RX.search(" ".join([it.get("title") or "", it.get("prize_desc") or "", it.get("promoter") or "", it.get("link") or ""])))
@@ -115,6 +115,7 @@ def _tag(xml, name):
 HANTS_RX = re.compile(r"(hampshire|\bhants\b|southampton|portsmouth|winchester|basingstoke|andover|\bromsey\b|new forest|lymington|\bfareham\b|"
                       r"\bgosport\b|\beastleigh\b|\bhavant\b|\bpetersfield\b|\balton\b(?![\s-]towers)|\bfleet\b,? hants|\bringwood\b|\bbrockenhurst\b|"
                       r"paultons|peppa pig world|marwell|beaulieu|spinnaker tower|historic dockyard|mary rose|exbury|mayflower theatre|"
+                      r"old thorns|meon valley|botley park|liphook|brokenhurst manor|stoneham golf|north hants|blackmoor golf|rowlands castle|dummer golf|test valley golf|lee-on-the-solent|royal winchester|hockley golf|"
                       r"wave 105|radio solent|st mary'?s stadium|fratton park|\bthe saints\b|pompey\b)", re.I)
 
 def is_hants(it):

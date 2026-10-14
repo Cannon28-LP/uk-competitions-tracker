@@ -1,0 +1,19 @@
+{
+ "_note": "Hand-verified one-off competitions on the promoter's own page that no scraper covers. Each needs closes_at (ISO, with offset); expired rows are ignored automatically. Optional: tags (e.g. 'hampshire', 'iow'), areas (gazetteer ids e.g. 'hampshire', 'iow').",
+ "items": [
+  {"title": "FREE ENTRY: Win a £500 Golfbreaks voucher or a £500 Golfstar Direct voucher",
+   "promoter": "GolfStar Competitions (GolfStar Group Ltd)",
+   "link": "https://golfstarcompetitions.co.uk/competition/free-entry-win-a-500-golfbreaks-voucher-or-a-500-golfstar-direct-voucher-for-free-prize-boost-available-check-description/",
+   "prize_desc": "£500 Golfbreaks voucher or £500 Golfstar Direct voucher (golf trips / equipment). Live draw 16 Nov 2026 8pm.",
+   "prize_value": 500, "entry_type": "free", "entry_cost": 0, "entry_cost_text": "FREE",
+   "entry_note": "£0 online entry (1 per person) but a GolfStar account with billing address is required; UK residents 18+; free postal route too. Optional 'prize boost' if you spend £5 elsewhere on the site.",
+   "closes_at": "2026-11-16T19:30:00+00:00", "closes_precision": "exact"},
+  {"title": "Golf Monthly golf survey: win a £250 Amazon voucher",
+   "promoter": "Future plc (Golf Monthly)",
+   "link": "https://www.golfmonthly.com/news/take-this-golf-survey-for-your-chance-to-win-a-gbp250-usd300-amazon-voucher",
+   "prize_desc": "Complete Golf Monthly's ~15-minute golf reader survey, then opt into the prize draw for a £250 Amazon voucher.",
+   "prize_value": 250, "entry_type": "free", "entry_cost": 0, "entry_cost_text": "FREE",
+   "entry_note": "Survey entry (about 15 mins); 18+, UK and US residents; no automated entries allowed.",
+   "closes_at": "2026-11-27T07:00:00+00:00", "closes_precision": "exact"}
+ ]
+}
