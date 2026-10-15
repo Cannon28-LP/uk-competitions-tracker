@@ -20,7 +20,9 @@ BIG_BRANDS = ["tesco", "sainsbury", "asda", "morrisons", "waitrose", "aldi", "li
               "boohoo", "next", "asos", "very", "tombola", "nationwide", "which", "english heritage", "national trust", "love2shop", "buyagift"]
 BIG_DOMAINS = ("makemeawinner.co.uk", "tesco.com", "sainsburys.co.uk", "asda.com", "amazon.co.uk", "currys.co.uk", "argos.co.uk", "johnlewis.com", "itv.com", "bbc.co.uk", "bbc.com",
                "channel4.com", "mumsnet.com", "dfs.co.uk", "dyson.co.uk", "samsung.com", "lego.com", "tui.co.uk", "jet2holidays.com", "radiotimes.com", "smoothradio.com",
-               "heart.co.uk", "goodhousekeeping.com", "olivemagazine.com", "panmacmillan.com", "nationwide.co.uk", "ikea.com", "boots.com", "mandmdirect.com", "waitrose.com")
+               "heart.co.uk", "goodhousekeeping.com", "olivemagazine.com", "panmacmillan.com", "nationwide.co.uk", "ikea.com", "boots.com", "mandmdirect.com", "waitrose.com",
+               # established UK golf publishers (company + competition T&Cs on own domain checked Oct 2026)
+               "nationalclubgolfer.com", "northerngolfer.co.uk", "golfmonthly.com", "todays-golfer.com")
 SCAM_TLDS = (".xyz", ".top", ".click", ".monster", ".icu", ".buzz", ".cyou", ".sbs", ".rest", ".cfd", ".gq", ".tk", ".ml", ".cf", ".ga", ".work", ".vip", ".bid", ".loan")
 SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "cutt.ly", "rb.gy", "shorturl.at", "tiny.cc")
 SCAM_WORDS = re.compile(r"(congratulations|you(?:'|’)?ve been selected|you have been selected|you(?:'|’)ve won|claim your prize (?:now|today)|act now|urgent|limited slots|"
