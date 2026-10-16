@@ -2,8 +2,11 @@ name: Update competitions & deploy site
 
 on:
   schedule:
-    - cron: "17 * * * *"      # hourly, at minute 17 (UTC)
-    - cron: "47 */2 * * *"    # backup slot: GitHub sometimes drops scheduled runs for hours; the concurrency group never overlaps runs
+    # GitHub throttles/drops scheduled runs at busy times (hours-long gaps seen). Three staggered slots per hour,
+    # off the top of the hour, so at least one fires; extra ones just queue behind the running job (see concurrency).
+    - cron: "7 * * * *"
+    - cron: "27 * * * *"
+    - cron: "47 * * * *"
   workflow_dispatch:
     inputs:
       only:
