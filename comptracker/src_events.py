@@ -130,3 +130,19 @@ def red_funnel(ctx):
                        entry_note="Free Red Funnel prize draw (online form; UK residents 18+, one entry each; Red Funnel T&Cs).",
                        skey=u, tags=["iow", "hampshire"]))
     return out
+
+# ---------------------------------------------------------------- Coast magazine (Kelsey Media)
+COAST = "https://www.coastmagazine.co.uk"
+
+@source("Coast magazine (Kelsey Media)", "publisher", COAST + "/competitions/",
+        "Kelsey Media Ltd (Co. no. 05822990, inc. 2006, Yalding, Kent): Coast magazine's own competitions page (UK hotel, spa and "
+        "cottage breaks). Kelsey terms on each page: entry is free, UK 18+, one per household; no login (kelseydirect.com form); "
+        "robots.txt allows all.", direct=True, allow_empty=True)
+def coast_mag(ctx):
+    out = _collect(ctx, COAST, ["/competitions/"], r"coastmagazine\.co\.uk/competitions/win-[a-z0-9-]+/?$", "Coast magazine (Kelsey Media)",
+                   "Free magazine competition (answer a question on Kelsey's entry form; UK residents 18+, one entry per household; "
+                   "Kelsey terms on the page).", "coast_detail", 12)
+    for o in out:   # card text = date + title + standfirst + byline: take the title from the URL slug instead
+        slug = re.sub(r"-20\d\d$", "", o["link"].rstrip("/").rsplit("/", 1)[-1])
+        o["title"] = o["prize_desc"] = slug.replace("-", " ").capitalize()
+    return out

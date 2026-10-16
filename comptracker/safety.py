@@ -31,7 +31,8 @@ BIG_DOMAINS = ("makemeawinner.co.uk", "tesco.com", "sainsburys.co.uk", "asda.com
                "shootinguk.co.uk",            # Time Well Spent Group Ltd 10204110 (Shooting Times; number on site)
                "livingnorth.com",             # Living North Ltd 03753188
                "redfunnel.co.uk",             # Red Funnel Ltd 10823670 (IoW ferry)
-               "aroundealing.com")            # Ealing Council's residents' magazine (public body; terms on each comp)
+               "aroundealing.com",
+               "coastmagazine.co.uk")         # Kelsey Media Ltd 05822990 (Coast magazine)            # Ealing Council's residents' magazine (public body; terms on each comp)
 SCAM_TLDS = (".xyz", ".top", ".click", ".monster", ".icu", ".buzz", ".cyou", ".sbs", ".rest", ".cfd", ".gq", ".tk", ".ml", ".cf", ".ga", ".work", ".vip", ".bid", ".loan")
 SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "cutt.ly", "rb.gy", "shorturl.at", "tiny.cc")
 SCAM_WORDS = re.compile(r"(congratulations|you(?:'|’)?ve been selected|you have been selected|you(?:'|’)ve won|claim your prize (?:now|today)|act now|urgent|limited slots|"
