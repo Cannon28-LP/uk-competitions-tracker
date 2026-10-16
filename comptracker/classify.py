@@ -17,7 +17,7 @@ TAXONOMY = {
     "Money/Cash": ["Cash lump sum", "Monthly/weekly income", "Mortgage/Bills paid", "Wedding", "Instant wins/Prize pools"],
     "Tech/Gadgets": ["Phones/Wearables", "Laptops/Tablets", "Gaming consoles/PC", "TVs/Audio", "Smart home/Appliances", "Cameras/Drones", "Other tech"],
     "Home/Property": ["Win a house", "Garden/Outdoor", "Furniture/Interiors", "Kitchen", "DIY/Tools", "Cleaning/Household"],
-    "Experiences/Events": ["Concert/festival tickets", "Sports tickets", "Theatre/Events", "Days out/Driving experiences", "Meet & greet/VIP"],
+    "Experiences/Events": ["Festivals", "Concert/festival tickets", "Sports tickets", "Theatre/Events", "Days out/Driving experiences", "Meet & greet/VIP"],
     "Gift cards/Vouchers": ["Supermarket", "Shopping", "Restaurants/Takeaway", "Entertainment/Streaming"],
     "Fashion/Beauty": ["Jewellery/Watches", "Handbags/Accessories", "Skincare/Makeup", "Fragrance", "Haircare", "Clothing/Footwear"],
     "Food/Drink": ["Hampers/Food boxes", "Wine/Spirits/Beer", "Restaurant meals", "Snacks/Coffee/Treats"],
@@ -89,7 +89,7 @@ def _car_sub(t):
 # ------------------------------------------------------------------ Holidays
 G("holspecial")
 R("Holidays/Travel", "Theme parks/Disney", r"\b(disney(?:land)?(?: paris| world)?|walt disney|legoland|alton towers|thorpe park|chessington|universal studios|theme parks?|paultons|peppa pig world|warner bros\.? studio|drayton manor|flamingo land|blackpool pleasure)\b.{0,40}\b(holiday|trip|resort|world|land|park|parks|cruise|break|tickets?|stay|visit|day|entry)\b|\b(holiday|trip|tickets?|break)\b.{0,30}\bdisney", r"\b(on blu-?ray|on ice|4k|dvd|plus|\+|toy|plush|lego set|book|film|musical)\b")
-R("Holidays/Travel", "Cruises", r"\b(cruises?|cruising|msc|p&o|norwegian|royal caribbean|azamara|celebrity cruises|princess|fred\. olsen|ambassador|river cruise)\b", r"\bprincess (?:diana|leia|bride)|norwegian wood")
+R("Holidays/Travel", "Cruises", r"\b(cruises?|cruising|msc|p&o|norwegian|royal caribbean|azamara|celebrity cruises|princess|fred\. olsen|ambassador|river cruise)\b", r"\bprincess (?:diana|leia|bride|minna)|norwegian wood|\bcopy of\b|\bbooks?\b")
 R("Holidays/Travel", "Spa/Wellness breaks", r"\b(spa (?:break|stay|weekend|retreat|escape|getaway|hotel|resort)|wellness (?:retreat|break|weekend|stay)|yoga retreat|health retreat|detox retreat|retreat)\b|\b(?:night|nights?)\b.{0,40}\bspa\b|\bspa\b.{0,40}\b(?:night|nights|stay|break)\b")
 LONGH = r"\b(dubai|abu dhabi|maldives|caribbean|barbados|jamaica|antigua|st lucia|bahamas|cuba|dominican|mexico|cancun|bali|thailand|phuket|vietnam|japan|tokyo|kyoto|singapore|hong kong|china|india|goa|sri lanka|mauritius|seychelles|zanzibar|kenya|tanzania|south africa|cape town|safari|egypt|morocco|marrakech|australia|sydney|new zealand|fiji|hawaii|las vegas|new york|nyc|los angeles|california|florida|orlando|miami|usa|america|canada|toronto|vancouver|banff|brazil|peru|costa rica|bora bora|tahiti|long[- ]haul|st\.? barts|oman|qatar|jordan|petra|bangkok|jordan)\b"
 EURO = r"\b(spain|spanish|majorca|mallorca|menorca|ibiza|tenerife|canary|canaries|lanzarote|fuerteventura|gran canaria|costa del sol|costa brava|portugal|algarve|lisbon|madeira|azores|italy|italian|rome|venice|florence|milan|tuscany|amalfi|sicily|sardinia|lake garda|greece|greek|crete|corfu|santorini|rhodes|kos|zante|mykonos|athens|paris|france|french|riviera|provence|nice|amsterdam|netherlands|belgium|brussels|bruges|barcelona|madrid|seville|prague|budapest|vienna|berlin|germany|munich|croatia|dubrovnik|split|montenegro|turkey|bodrum|cyprus|malta|bulgaria|iceland|norway|sweden|stockholm|denmark|copenhagen|finland|lapland|swiss|switzerland|austria|alps|ski(?:ing)?|europe(?:an)?|city break|poland|krakow|estonia|tallinn|riga|dolomites|courchevel|val d'?isere|verbier)\b"
@@ -104,13 +104,42 @@ def _hol_sub(t):
     return "Hotels/Other travel"
 
 # ------------------------------------------------------------------ Experiences
-SPORTS = r"\b(football|soccer|premier league|champions league|arsenal|chelsea|tottenham|spurs|liverpool|man(?:chester)? (?:united|city)|everton|west ham|newcastle|aston villa|celtic|rangers|fc\b|lille|losc|rugby|six nations|nations championship|lions tour|cricket|the hundred|ashes|tennis|wimbledon|queen'?s club|laver cup|atp|wta|golf|ryder cup|the open|boxing|ufc|wwe|darts|snooker|f1|formula (?:1|one|e)|grand prix|silverstone|motogp|nascar|racing|races?|race meeting|horse racing|ascot|cheltenham festival|aintree|grand national|derby day|goodwood|marathon|olympics|athletics|diamond league|basketball|nba|nfl|ice hockey|hockey|netball|stadium|match(?:day)? (?:tickets?|hospitality)|hospitality)\b"
+SPORTS = r"\b(football|soccer|premier league|champions league|arsenal|chelsea(?! flower)|tottenham|spurs|liverpool (?:fc|football)|man(?:chester)? (?:united|city)|everton|west ham|newcastle (?:united|falcons|eagles)|\w+ (?:united|rovers|wanderers|albion|athletic|town fc|city fc)|aston villa|celtic|rangers|fc\b|lille|losc|rugby|six nations|nations championship|lions tour|cricket|the hundred|ashes|tennis|wimbledon|queen'?s club|laver cup|atp|wta|golf|ryder cup|the open|boxing|ufc|wwe|darts|snooker|f1|formula (?:1|one|e)|grand prix|silverstone|motogp|nascar|racing|races?|race meeting|horse racing|ascot|cheltenham festival|festival of speed|goodwood revival|aintree|grand national|derby day|goodwood|marathon|olympics|athletics|diamond league|basketball|nba|nfl|ice hockey|hockey|netball|stadium|match(?:day)? (?:tickets?|hospitality)|hospitality)\b"
+# Festivals: named UK festivals, or '<x> festival' with a ticket/pass/entry word. Sales ('festival of offers'), horse racing
+# ('Cheltenham Festival' -> Sports) and Goodwood's 'Festival of Speed' (motor sport) are excluded.
+FEST_NAMES = (r"glastonbury|bestival|camp bestival|boomtown|victorious|isle of wight festival|reading (?:&|and) leeds|reading festival|leeds festival|"
+              r"download festival|latitude|wireless festival|bst hyde park|british summer time|creamfields|parklife|tramlines|kendal calling|"
+              r"green man|end of the road|truck festival|boardmasters|all points east|lovebox|field day|mighty hoopla|standon calling|"
+              r"wilderness festival|wychwood|cornbury|cropredy|womad|bluedot|y not festival|neighbourhood weekender|trnsmt|belladrum|"
+              r"edinburgh (?:festival )?fringe|edinburgh international festival|edinburgh'?s? hogmanay|hay festival|cheltenham (?:literature|jazz|science|music) festival|"
+              r"shiiine on|rewind festival|let'?s rock|on blackheath|forwards festival|we are fstvl|lost village|houghton festival|"
+              r"dot to dot|liverpool sound city|great escape festival|the great escape|2000trees|bloodstock|rebellion festival|"
+              r"hogmanay|winter wonderland|light ?festival|christmas (?:light|lights) festival|beer festival|food festival|"
+              r"comedy festival|literary festival|literature festival|book festival|film festival|folk festival|jazz festival|"
+              r"family festival|kids'? festival|music festival|arts festival|food (?:&|and) drink festival|chilli festival|garlic festival|"
+              r"balloon fiesta|cowes week|round the island race|isle of wight walking festival|ventnor fringe|rhythm (?:&|and) vines|"
+              r"[a-z]+ on weekender")
+FESTIVAL = (r"\b(" + FEST_NAMES + r")\b|\bfestival\b.{0,60}\b(tickets?|passes?|wristbands?|weekend|camping|glamping|entry|admission|day tickets?|vip|package)\b|"
+            r"\b(tickets?|passes?|wristbands?|camping|glamping|entry|admission)\b.{0,60}\bfestival\b")
+FEST_NOT = (r"\b(?:royal )?festival (?:hall|theatre|park|place|square|centre|gardens)\b|\bfestival of (?:offers|savings|deals|discounts|bargains|value|speed|light(?:s)? (?:sale|deals))\b|\bfestive\b(?!.{0,40}festival)|"
+            r"\bcheltenham festival\b|\bfestival (?:sale|offers?|deals?|savings?|discount|edition (?:box|bundle|bottle|gin)|collection|hamper|bundle|kit|outfit|fashion|wear|makeup|glitter|lights? (?:set|string)|tent (?!pitch))\b|"
+            r"\bpopcorn|\b(?:speaker|headphones?|earbuds?|tent|chair|backpack|cooler|cool ?box|power ?bank|poncho|wellies|bum ?bag|sunglasses)\b(?!.{0,40}\btickets?\b)|"
+            r"\b(?:p|pence|£\s?\d+(?:\.\d+)?)\s*/?\s*(?:per )?ticket\b|\binstant win|\braffle\b|\bdraw no\b")
 TICKETISH = r"\b(tickets?|seats?|hospitality|box|passes|pass|place at|places at|admission|entry to|vip|to see|to watch|to attend|to experience|to the)\b"
 G("tickets")
+R("Experiences/Events", "Days out/Driving experiences", r"\b(santa'?s? (?:grotto|experience|sleigh|express|train|workshop|village)|grotto|(?:visit|meet) santa|santa (?:in|at)\b|pumpkin (?:patch|picking)|halloween (?:spooktacular|trail|event)|spooky (?:trail|event|spectacular)|adventure (?:world|land|farm)|farm park|maize maze)\b")
+R("Experiences/Events", "Festivals", FESTIVAL, FEST_NOT)
 R("Experiences/Events", "Meet & greet/VIP", r"\b(meet (?:&|and) greets?|meet the|backstage|album playback|listening (?:party|session)|exclusive (?:event|access|screening|preview|playback)|fan experience|vip (?:experience|package|tickets?|access|fan)|vip\b)\b")
-R("Experiences/Events", "Days out/Driving experiences", r"\bfamily (?:ticket|pass|day)s?\b|\b(zoo|zoological|aquarium|safari park|wildlife park|farm park|adventure park|water park|attractions?|castle|cathedral|gardens?|abbey|palace|light (?:trail|experience)|illuminat\w+|family (?:day|ticket|pass)|day out|racecourse|heritage|railway|steam train|planetarium|sanctuary|museum)\b.{0,50}\b(tickets?|passes|pass|entry|admission|day|visit)\b|\b(tickets?|passes|pass|entry|admission|visit)\b.{0,50}\b(zoo|zoological|aquarium|safari park|wildlife park|farm park|adventure park|water park|attractions?|castle|cathedral|gardens?|abbey|palace|light (?:trail|experience)|racecourse|railway|steam train|planetarium|sanctuary)\b")
+R("Experiences/Events", "Concert/festival tickets", r"\b(gigs?|concerts?|(?:final |farewell |solo |acoustic |arena |uk )+tour|in concert|orchestra|symphony|philharmonic)\b.{0,60}" + TICKETISH + r"|" + TICKETISH + r".{0,60}\b(gigs?|concerts?|(?:final |farewell |solo |acoustic |arena |uk )+tour|in concert|orchestra|symphony|philharmonic)\b", r"\b(on ice|musical|panto|pantomime|ballet|opera)\b")
+THEATRE_W = (r"theatre|theater|musical|west end|opera|ballet|comedy|comedian|stand-?up|panto|pantomime|circus|cabaret|cirque|playhouse|mean girls|"
+             r"live experience|traitors|on ice|magic show|illusion|wicked|mamma mia|lion king|hamilton|matilda|les mis|phantom|six the musical|"
+             r"matthew bourne|dance (?:show|company)|robin hood|jack (?:and|&) the beanstalk|snow white|peter pan|aladdin|cinderella|sleeping beauty|beauty (?:and|&) the beast|dick whittington|goldilocks|mother goose|jersey boys|"
+             r"cinema|film (?:premiere|screening)|premiere|screening|exhibitions?|museum|gallery|comic[- ]?con|"
+             r"convention|expo|shows?|the play|play at|brit awards|awards|quartet|live (?:show|event|recording)|lowry|palladium|old vic|new vic|"
+             r"national theatre|royal albert hall|ice show|ice skating|christmas market|fair")
+R("Experiences/Events", "Theatre/Events", r"\b(" + THEATRE_W + r")\b.{0,60}\b(tickets?|seats?|to see|entry|admission|passes?|places?|night|experience)\b|\b(tickets?|seats?|to see|passes?)\b.{0,60}\b(" + THEATRE_W + r")\b")
 R("Experiences/Events", "Sports tickets", r"(" + TICKETISH + r".{0,80}" + SPORTS + r"|" + SPORTS + r".{0,60}" + TICKETISH + r"|\b\w+ (?:v|vs\.?) \w+\b.{0,30}(?:tickets?|seats?)|(?:tickets?|seats?).{0,40}\b\w+ (?:v|vs\.?) \w+\b)", r"\b(shirt|kit|boots|signed|memorabilia|voucher|tour|concert|gig|oasis|live in)\b")
-R("Experiences/Events", "Theatre/Events", r"\b(theatre|theater|musical|west end|opera|ballet|comedy|comedian|stand-?up|panto|pantomime|circus|cabaret|cirque|playhouse|mean girls|live experience|traitors|on ice|magic show|illusion|wicked|mamma mia|lion king|hamilton|matilda|les mis|phantom|six the musical|cinema|film (?:premiere|screening)|premiere|screening|exhibition|museum|gallery|comic[- ]?con|convention|expo|show\b|the play\b|play at|brit awards|awards|quartet|live (?:show|event|recording)|lowry|palladium|old vic|national theatre|royal albert hall|ice show|ice skating|christmas market|fair\b)\b.{0,60}\b(tickets?|seats?|to see|entry|admission|passes?|places?|night|experience)\b|\b(tickets?|seats?|to see|passes?)\b.{0,60}\b(theatre|theater|musical|west end|opera|ballet|comedy|comedian|panto|pantomime|circus|cabaret|cinema|premiere|screening|exhibition|museum|comic[- ]?con|convention|expo|brit awards|awards|quartet|show)\b")
+R("Experiences/Events", "Days out/Driving experiences", r"\bfamily (?:ticket|pass|day)s?\b|\b(zoo|zoological|aquarium|safari park|wildlife park|farm park|adventure park|water park|attractions?|castle|cathedral|gardens?|abbey|palace|light (?:trail|experience)|illuminat\w+|family (?:day|ticket|pass)|day out|racecourse|heritage|railway|steam train|planetarium|sanctuary|museum)\b.{0,50}\b(tickets?|passes|pass|entry|admission|day|visit)\b|\b(tickets?|passes|pass|entry|admission|visit)\b.{0,50}\b(zoo|zoological|aquarium|safari park|wildlife park|farm park|adventure park|water park|attractions?|castle|cathedral|gardens?|abbey|palace|light (?:trail|experience)|racecourse|railway|steam train|planetarium|sanctuary)\b")
 R("Experiences/Events", "Concert/festival tickets", r"(\b(concert|festival|gig|gigs|live in|live at|live\b|tour|arena|o2|wembley|hyde park|bestival|glastonbury|reading|download|latitude|wireless|capital'?s? (?:summertime|jingle)|jingle bell|summertime ball|bbc proms|proms|radio \d|band|singer|dj|rave|club night|orchestra|symphony|choir)\b.{0,60}" + TICKETISH + r"|" + TICKETISH + r".{0,60}\b(concert|festival|gig|live|tour|arena|o2|wembley|bestival|proms|band|singer|dj|orchestra)\b|\btickets? (?:to|for) see\b|\btickets? to \w+)")
 R("Experiences/Events", "Concert/festival tickets", r"\btickets?\b", r"\b\d[\d,]*\s+(?:house\s+)?tickets|tickets? (?:for|worth|\d|5p|£)|a ticket|per ticket|instant win|raffle|house tickets|\bcomp\b|entries|every ticket|ticket tout|rolex|limited tickets|ticket(?:s)? (?:left|sold)")
 G("restaurant")
@@ -217,13 +246,21 @@ def _holiday(t):
     if re.search(r"\b(" + LONGH[3:-3] + r")\b", t, re.I) and re.search(r"\bwin\b", t, re.I): return "Long-haul"
     return None
 
+# Strong 'event ticket' phrasing is decided before the vehicle/holiday/voucher rules, so e.g. "tickets to see Matthew Bourne's
+# The Car Man" is theatre, not a car, and "Kendal Mountain Festival package" is a festival. Stays/breaks/flights stay in Holidays.
+EVENT_EARLY = _r(r"\b(?:pairs? of|family|vip|weekend|day|two|four|2|4|x\s?2|x\s?4)\s+(?:adult\s+)?(?:tickets?|passes)\b|\btickets?\s+(?:to|for)\s+(?:see|watch|the|an?|this|our)\b|\bwin tickets\b|\bfestival\b|\bpanto(?:mime)?\b|\b(?:" + FEST_NAMES + r")\b")
+EVENT_EARLY_NOT = _r(r"\b(nights?|overnight|stay|hotel|break|holiday|flights?|cruise|getaway|lodge|cottage)\b(?<!festival break)|instant win|\bp/ticket|per ticket|\braffle\b|\bdraw no|\brolex\b|\bbotb\b|house tickets|tickets? (?:worth|left|sold)|£\s?[\d,]+\s*(?:k\b|cash|in cash)|\bcash\b")
+def _event(t):
+    if not EVENT_EARLY.search(t) or EVENT_EARLY_NOT.search(t): return None
+    return _grp(t, "tickets")
+
 def _grp(t, name):
     for g, cat, sub, rx, neg in rules:
         if g == name and rx.search(t) and not (neg and neg.search(t)): return cat, sub
     return None
 
 # evaluation order (specific before generic); ("fn", f) entries compute their own sub-category
-ORDER = ["money", ("fn", "golf"), "voucher", "property", "boats", "bikes", ("fn", "vehicle"), "holspecial", ("fn", "holiday"), "tickets", "media",
+ORDER = ["money", ("fn", "golf"), ("fn", "event"), "voucher", "property", "boats", "bikes", ("fn", "vehicle"), "holspecial", ("fn", "holiday"), "tickets", "media",
          "restaurant", "daysout", "advent", "diy", "tech", "home", "sport", "family", "fashion", "food", "instant", "cashword", "seasonal"]
 
 def _match(t):
@@ -233,6 +270,9 @@ def _match(t):
             if g[1] == "golf":
                 v = _golf(t)
                 if v: return "Golf", v
+            elif g[1] == "event":
+                v = _event(t)
+                if v: return v
             elif g[1] == "vehicle":
                 v = _vehicle(t)
                 if v: return "Cars", v

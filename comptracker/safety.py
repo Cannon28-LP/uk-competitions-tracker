@@ -22,7 +22,16 @@ BIG_DOMAINS = ("makemeawinner.co.uk", "tesco.com", "sainsburys.co.uk", "asda.com
                "channel4.com", "mumsnet.com", "dfs.co.uk", "dyson.co.uk", "samsung.com", "lego.com", "tui.co.uk", "jet2holidays.com", "radiotimes.com", "smoothradio.com",
                "heart.co.uk", "goodhousekeeping.com", "olivemagazine.com", "panmacmillan.com", "nationwide.co.uk", "ikea.com", "boots.com", "mandmdirect.com", "waitrose.com",
                # established UK golf publishers (company + competition T&Cs on own domain checked Oct 2026)
-               "nationalclubgolfer.com", "northerngolfer.co.uk", "golfmonthly.com", "todays-golfer.com")
+               "nationalclubgolfer.com", "northerngolfer.co.uk", "golfmonthly.com", "todays-golfer.com",
+               # festival / event-ticket publishers & broadcasters with their own competition terms (Companies House checked Oct 2026)
+               "primarytimes.co.uk",          # Primary Times Ltd 09512881
+               "expressfm.com",               # Express FM (Portsmouth) Ltd 05265112
+               "oraclepublications.co.uk",    # Oracle Publications (UK) Ltd 06612831
+               "classicpopmag.com",           # Anthem Publishing Ltd 04542063
+               "shootinguk.co.uk",            # Time Well Spent Group Ltd 10204110 (Shooting Times; number on site)
+               "livingnorth.com",             # Living North Ltd 03753188
+               "redfunnel.co.uk",             # Red Funnel Ltd 10823670 (IoW ferry)
+               "aroundealing.com")            # Ealing Council's residents' magazine (public body; terms on each comp)
 SCAM_TLDS = (".xyz", ".top", ".click", ".monster", ".icu", ".buzz", ".cyou", ".sbs", ".rest", ".cfd", ".gq", ".tk", ".ml", ".cf", ".ga", ".work", ".vip", ".bid", ".loan")
 SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "cutt.ly", "rb.gy", "shorturl.at", "tiny.cc")
 SCAM_WORDS = re.compile(r"(congratulations|you(?:'|’)?ve been selected|you have been selected|you(?:'|’)ve won|claim your prize (?:now|today)|act now|urgent|limited slots|"

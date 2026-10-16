@@ -1,19 +1,78 @@
 {
  "_note": "Hand-verified one-off competitions on the promoter's own page that no scraper covers. Each needs closes_at (ISO, with offset); expired rows are ignored automatically. Optional: tags (e.g. 'hampshire', 'iow'), areas (gazetteer ids e.g. 'hampshire', 'iow').",
  "items": [
-  {"title": "FREE ENTRY: Win a £500 Golfbreaks voucher or a £500 Golfstar Direct voucher",
+  {
+   "title": "FREE ENTRY: Win a £500 Golfbreaks voucher or a £500 Golfstar Direct voucher",
    "promoter": "GolfStar Competitions (GolfStar Group Ltd)",
    "link": "https://golfstarcompetitions.co.uk/competition/free-entry-win-a-500-golfbreaks-voucher-or-a-500-golfstar-direct-voucher-for-free-prize-boost-available-check-description/",
    "prize_desc": "£500 Golfbreaks voucher or £500 Golfstar Direct voucher (golf trips / equipment). Live draw 16 Nov 2026 8pm.",
-   "prize_value": 500, "entry_type": "free", "entry_cost": 0, "entry_cost_text": "FREE",
+   "prize_value": 500,
+   "entry_type": "free",
+   "entry_cost": 0,
+   "entry_cost_text": "FREE",
    "entry_note": "£0 online entry (1 per person) but a GolfStar account with billing address is required; UK residents 18+; free postal route too. Optional 'prize boost' if you spend £5 elsewhere on the site.",
-   "closes_at": "2026-11-16T19:30:00+00:00", "closes_precision": "exact"},
-  {"title": "Golf Monthly golf survey: win a £250 Amazon voucher",
+   "closes_at": "2026-11-16T19:30:00+00:00",
+   "closes_precision": "exact"
+  },
+  {
+   "title": "Golf Monthly golf survey: win a £250 Amazon voucher",
    "promoter": "Future plc (Golf Monthly)",
    "link": "https://www.golfmonthly.com/news/take-this-golf-survey-for-your-chance-to-win-a-gbp250-usd300-amazon-voucher",
    "prize_desc": "Complete Golf Monthly's ~15-minute golf reader survey, then opt into the prize draw for a £250 Amazon voucher.",
-   "prize_value": 250, "entry_type": "free", "entry_cost": 0, "entry_cost_text": "FREE",
+   "prize_value": 250,
+   "entry_type": "free",
+   "entry_cost": 0,
+   "entry_cost_text": "FREE",
    "entry_note": "Survey entry (about 15 mins); 18+, UK and US residents; no automated entries allowed.",
-   "closes_at": "2026-11-27T07:00:00+00:00", "closes_precision": "exact"}
+   "closes_at": "2026-11-27T07:00:00+00:00",
+   "closes_precision": "exact"
+  },
+  {
+   "title": "Win a pair of tickets to Questors Comedy Festival (Ealing)",
+   "promoter": "Around Ealing (Ealing Council) with The Questors Theatre",
+   "link": "https://www.aroundealing.com/news/win-tickets-to-questors-comedy-festival/",
+   "prize_desc": "A pair of tickets to one of the three Questors Comedy Festival shows, 2-4 Nov 2026 (Dominic Holland, Ed Byrne and more), Ealing, London.",
+   "entry_type": "free",
+   "entry_cost": 0,
+   "entry_cost_text": "FREE",
+   "entry_note": "Email the answer to the question on the page (subject 'Questors Comedy Festival competition') with your name and contact details. Only winners are notified; drawn 27 Oct.",
+   "closes_at": "2026-10-26T23:59:00+01:00",
+   "closes_precision": "exact",
+   "areas": [
+    "london"
+   ],
+   "tags": [
+    "london"
+   ]
+  },
+  {
+   "title": "Win a pair of tickets to see Hugh Cornwell's final solo tour at Whitley Bay Playhouse",
+   "promoter": "Living North (Living North Ltd)",
+   "link": "https://www.livingnorth.com/win-offer/win-tickets-see-hugh-cornwells-final-solo-tour-whitley-bay",
+   "prize_desc": "A pair of tickets to Hugh Cornwell (ex-Stranglers) live at Whitley Bay Playhouse, Fri 27 Nov 2026.",
+   "prize_value": 83,
+   "entry_type": "free",
+   "entry_cost": 0,
+   "entry_cost_text": "FREE",
+   "entry_note": "Free: online form (needs a free Living North log-in) or by postcard to Living North, Studio 2, St Nicholas Chare, Newcastle NE1 1RJ marked 'Hugh Cornwell'. 18+.",
+   "closes_at": "2026-11-13T23:59:00+00:00",
+   "closes_precision": "date"
+  },
+  {
+   "title": "Win a pair of 3-day tickets to the British Shooting Show 2027 (NEC)",
+   "promoter": "ShootingUK / Shooting Times (Time Well Spent Group Ltd)",
+   "link": "https://www.shootinguk.co.uk/competitions/win-a-pair-of-tickets-to-the-british-shooting-show-2027/",
+   "prize_desc": "A pair of three-day tickets to the Great British Shooting Show, NEC Birmingham, 12-14 Feb 2027 (worth £129.90).",
+   "prize_value": 129.9,
+   "entry_type": "free",
+   "entry_cost": 0,
+   "entry_cost_text": "FREE",
+   "entry_note": "Free entry form on the page (under a minute); full competition T&Cs linked on the page.",
+   "closes_at": "2027-01-15T23:59:00+00:00",
+   "closes_precision": "date",
+   "areas": [
+    "birmingham"
+   ]
+  }
  ]
 }

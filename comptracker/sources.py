@@ -1163,3 +1163,4 @@ def radio_bauer(ctx):
 
 from . import src_intl  # noqa: E402,F401  (registers the other countries' sources)
 from . import src_iow  # noqa: E402,F401  (Isle of Wight local sources)
+from . import src_events  # noqa: E402,F401  (festival & event-ticket publishers)

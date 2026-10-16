@@ -39,6 +39,19 @@ CASES = [
  # regressions: look-alikes that must NOT be misfiled
  ("Win £500 Spend On Oskia Skincare", "Gift cards/Vouchers", "Shopping"), ("Win a Van Cleef & Arpels necklace", "Fashion/Beauty", "Jewellery/Watches"),
  ("Win golf for four at Wynyard Golf Club", "Golf", "Golf lessons/rounds"), ("Win a family crazy golf day out", "NOTGOLF", None), ("Win mini golf tickets for four", "NOTGOLF", None), ("Win a Rolex Yacht-Master", "Fashion/Beauty", "Jewellery/Watches"),
+ # festivals & events
+ ("Win 2 weekend tickets to Boomtown 2027", "Experiences/Events", "Festivals"), ("Win a family ticket to Victorious Festival", "Experiences/Events", "Festivals"),
+ ("Win tickets to Isle of Wight Festival 2027", "Experiences/Events", "Festivals"), ("Win glamping at Camp Bestival", "Experiences/Events", "Festivals"),
+ ("Win a pair of tickets to Hay Festival", "Experiences/Events", "Festivals"), ("Win VIP tickets to BST Hyde Park", "Experiences/Events", "Festivals"),
+ ("Win a Kendal Mountain Festival package", "Experiences/Events", "Festivals"), ("Win tickets to the Edinburgh Fringe", "Experiences/Events", "Festivals"),
+ ("Win tickets to Cheltenham Festival", "Experiences/Events", "Sports tickets"), ("Win a Festival of Speed hospitality package", "Experiences/Events", "Sports tickets"),
+ ("Win a pair of tickets to see Matthew Bourne's The Car Man!", "Experiences/Events", "Theatre/Events"),
+ ("Win a family ticket to Robin Hood panto at Mayflower", "Experiences/Events", "Theatre/Events"), ("Win 2 tickets to MAMMA MIA!", "Experiences/Events", "Theatre/Events"),
+ ("Win tickets to see Cirque Alice at the Royal Festival Hall", "Experiences/Events", "Theatre/Events"),
+ ("Win tickets to the Chelsea Flower Show", "Experiences/Events", "Theatre/Events"), ("Win a family ticket to Chester Zoo", "Experiences/Events", "Days out/Driving experiences"),
+ ("Festival of offers: win a £50 voucher", "Gift cards/Vouchers", "Shopping"), ("Win a JBL festival speaker", "Tech/Gadgets", None),
+ ("Win a weekender bag", "Fashion/Beauty", None), ("Win 5 x Rolex tickets worth £250", "Fashion/Beauty", "Jewellery/Watches"),
+ ("Win a two night UK break with Cheltenham Festival Ladies Day tickets", "Holidays/Travel", None),
 ]
 
 def test_taxonomy_is_consistent():
