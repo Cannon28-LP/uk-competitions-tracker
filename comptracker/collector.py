@@ -128,8 +128,13 @@ def run(only=None, caps=None):
             except Exception as e:
                 print(f"  og:image step failed: {e}")
         prev_count = db.execute("SELECT count(*) FROM raw WHERE source=?", (name,)).fetchone()[0]
-        if not first_run and prev_count == 0 and not db.execute("SELECT 1 FROM source_status WHERE source=? AND last_ok IS NOT NULL", (name,)).fetchone():
-            for it in kept: it["backfill"] = True      # a source's very first successful run: we didn't see these appear, so no NEW flags
+        lo = db.execute("SELECT last_ok FROM source_status WHERE source=?", (name,)).fetchone()
+        lo = lo[0] if lo else None
+        long_down = bool(lo) and (now() - datetime.fromisoformat(lo)).total_seconds() / 3600 > STALE_DROP_H
+        if not first_run and ((prev_count == 0 and not lo) or long_down):
+            # a source's very first successful run, or its first after being down >STALE_DROP_H (e.g. a site redesign we just
+            # caught up with): we didn't see these appear, so no NEW flags for listings we haven't stored before
+            for it in kept: it["backfill"] = True
         n = now()
         ok = err is None and (len(kept) > 0 or (spec.get("allow_empty") and not errs))
         partial = bool(errs)

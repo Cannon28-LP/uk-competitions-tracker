@@ -109,8 +109,13 @@ def main():
     db = collector.connect()
     site = build_site_json(db)
     print(json.dumps(dict(stats or {}, sources={s["source"]: dict(count=s["count"], status=s["status"], shown=s["shown"]) for s in site["sources"]}), indent=1))
-    if site["total"] == 0 or (prev_total and site["total"] < a.min_ratio * prev_total):
-        print(f"ABORT: suspicious result total={site['total']} (prev raw={prev_total}); not publishing", file=sys.stderr); return 2
+    # Sanity guard against a broken scrape wiping the page. Items removed on purpose this run (closing date passed, marked
+    # closed, or a source that has been down for more than STALE_DROP_H hours) are not a collapse, so they don't count against
+    # it: otherwise one long-dead source keeps the guard tripping every run and the country never updates again.
+    st = stats or {}
+    expected = max(0, prev_total - st.get("expired_removed", 0) - st.get("closed_removed", 0) - st.get("stale_dropped", 0))
+    if site["total"] == 0 or (expected and site["total"] < a.min_ratio * expected):
+        print(f"ABORT: suspicious result total={site['total']} (prev raw={prev_total}, expected~{expected}); not publishing", file=sys.stderr); return 2
     dump_state(db, a.state)
     if a.out:
         os.makedirs(a.out, exist_ok=True)

@@ -188,6 +188,9 @@ jobs:
 
   deploy:
     needs: publish
+    # deploy whenever publish succeeded, even if one country's collector failed (publish keeps that country's previous
+    # file). Without this, GitHub skips the deploy after any failed collector and the live site stops updating.
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:

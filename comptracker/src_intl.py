@@ -272,8 +272,11 @@ def nl_gala(ctx):
 CIE = "https://competitions.ie"
 
 def _cie_cards(s, station=""):
+    """Competition cards on competitions.ie listing pages. Nov 2026 redesign: each card is an <article> (title link in an
+    <h2>, blurb in a <p>, "N weeks left" badge, category chips); the older layout used div.border-muted-foreground."""
     out = []
-    for c in s.select("div.border-muted-foreground"):
+    cards = s.select("article") or s.select("div.border-muted-foreground")
+    for c in cards:
         a = c.select_one('a[href^="/competition/"]')
         if not a: continue
         txt = clean(c.get_text(" | "))
@@ -285,25 +288,33 @@ def _cie_cards(s, station=""):
         cat = c.select_one('a[href^="/competition-category/"]')
         left = re.search(r"(\d+\s*(?:weeks?|days?|hours?|months?)\s*left|ends? today|ends? tomorrow)", txt, re.I)
         closes = _left_to_date(left.group(1)) if left else None
-        parts = [p.strip() for p in txt.split("|")]
-        desc = parts[-1] if parts and len(parts[-1]) > 30 else ""
-        href = re.sub(r"\?src=listing$", "", a["href"])
+        desc = ""
+        for p in c.select("p"):     # blurb paragraph (skip the "Posted by ... on <date>" line)
+            t = clean(p.get_text(" "))
+            if len(t) > 30 and not t.lower().startswith("posted by"): desc = t; break
+        if not desc:                # older layout: blurb was the last text part of the card
+            parts = [p.strip() for p in txt.split("|")]
+            desc = parts[-1] if parts and len(parts[-1]) > 30 else ""
+        req = re.search(r"Requires:\s*\|?\s*([A-Za-z ,&/-]{3,40})", txt)
+        href = re.sub(r"[?#]src=listing$", "", (title_el or a)["href"])
+        note = "; ".join(x for x in [("Category: " + clean(cat.get_text())) if cat else "",
+                                     ("Requires: " + req.group(1).strip()) if req else ""] if x)
         out.append(rec(title=title, link=_abs(CIE, href), prize_desc=desc[:400] or title, prize_value=prize_value_from_text(title + " " + desc),
                        entry_type="free", closes_at=closes, closes_precision="approx" if closes else "", station=station,
-                       entry_note=("Category: " + clean(cat.get_text())) if cat else "", image=img_url(c, CIE)))
+                       entry_note=note, image=img_url(c, CIE)))
     return out
 
 @source("Competitions.ie", "aggregator", CIE + "/new-competitions", "Irish competitions directory (new + radio pages).", country="ie")
 def ie_competitions(ctx):
     out = []
     pages = ctx.cap("cie_pages", 8)
-    urls = [CIE + "/new-competitions"] + [CIE + f"/new-competitions/{i}" for i in range(2, pages + 1)]
+    urls = [CIE + "/new-competitions/"] + [CIE + f"/new-competitions/{i}/" for i in range(2, pages + 1)]
     for u, s in _pages(ctx, urls):
         got = _cie_cards(s)
         if not got: break
         out.extend(got)
-    extra = ["/competitions-ending-soon"] + [f"/competition-category/{c}" for c in ("cash", "travel-and-hotels", "tickets", "food-and-drink",
-             "books-and-magazines", "special-occasions", "sports-and-leisure", "toys-and-games")] + ["/win-a-car", "/win-a-holiday", "/win-cash"]
+    extra = ["/competitions-ending-soon/"] + [f"/competition-category/{c}/" for c in ("cash", "travel-and-hotels", "tickets", "food-and-drink",
+             "books-and-magazines", "special-occasions", "sports-and-leisure", "toys-and-games")] + ["/win-a-car/", "/win-a-holiday/", "/win-cash/"]
     for u, s in _pages(ctx, [CIE + e for e in extra]):
         out.extend(_cie_cards(s))
     return out
